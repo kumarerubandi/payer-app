@@ -566,7 +566,7 @@ class CommunicationRequest extends Component {
                 </div>
                 <div>
                   <div className="header">
-                    Reason
+                    Requesting for
                   </div>
                   <div className="dropdown">
                     <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
