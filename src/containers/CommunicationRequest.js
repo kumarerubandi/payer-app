@@ -4,6 +4,7 @@ import React, { Component } from 'react';
 // import DropdownTreating from '../components/DropdownTreating';
 // import DropdownPayer from '../components/DropdownPayer';
 // import DropdownServiceCode from '../components/DropdownServiceCode';
+import DropdownDocument from '../components/DropdownDocument';
 import { Input } from 'semantic-ui-react';
 // import { DateInput } from 'semantic-ui-calendar-react';
 import { withRouter } from 'react-router-dom';
@@ -38,9 +39,9 @@ class CommunicationRequest extends Component {
       accessToken: '',
       scope: '',
       payer: '',
-      patientId: '',
-      payerId:'',
-      practitionerId: sessionStorage.getItem('npi'),
+      patientId: sessionStorage.getItem('patientId'),
+      payerId:sessionStorage.getItem('payerId'),
+      practitionerId: sessionStorage.getItem('practitionerId'),
       resourceType: null,
       resourceTypeLT: null,
       encounterId: '',
@@ -78,6 +79,8 @@ class CommunicationRequest extends Component {
       service_code:"",
       category_name:"",
       communicationList:[],
+      documentsList:[],
+      reqId:'',
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
         'step_no': 2, 'step_str': 'Retrieving the required 4 FHIR resources on crd side.', 'step_status': 'step_not_started'
@@ -120,6 +123,7 @@ class CommunicationRequest extends Component {
     this.getPrefetchData = this.getPrefetchData.bind(this);
     this.readFHIR = this.readFHIR.bind(this);
     this.onClickMenu = this.onClickMenu.bind(this);
+    this.redirectTo = this.redirectTo.bind(this);
   }
   consoleLog(content, type) {
     let jsonContent = {
@@ -132,10 +136,9 @@ class CommunicationRequest extends Component {
   }
 
   updateStateElement = (elementName, text) => {
-    console.log(elementName,'elenAME')
-    
-      this.setState({ [elementName]: text });
-      this.setState({ validateIcdCode: false })
+    console.log(elementName,'elenAME',text)
+    this.setState({ [elementName]: text });
+      // this.setState({ validateIcdCode: false })
     
   }
 
@@ -170,17 +173,14 @@ class CommunicationRequest extends Component {
   async componentDidMount() {
      
     try {
-
-            console.log("this.props.config.::",this.props.config,this.props.config.payer.fhir_url)
-            const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
-            const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-            this.setState({ accessToken: token });
-            console.log('The token is : ', token);
-            
-        } catch (error) {
-
-            console.log('Communication Creation failed',error);
-        }
+        console.log("this.props.config.::",this.props.config,this.props.config.payer.fhir_url)
+        const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
+        const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+        this.setState({ accessToken: token });
+        console.log('The token is : ', token);
+      } catch (error) {
+        console.log('Communication Creation failed',error);
+      }
     
   }
 
@@ -309,6 +309,7 @@ class CommunicationRequest extends Component {
   onPatientChange(event) {
     this.setState({ patientId: event.target.value });
     this.setState({ validatePatient: false });
+
   }
   onPractitionerChange(event) {
     this.setState({ practitionerId: event.target.value });
@@ -320,7 +321,7 @@ class CommunicationRequest extends Component {
   }
 
   onReasonChange(event){
-    this.setState({ reason: event.target.value });
+    this.setState({ reasons: event.target.value });
   }
 
   onCoverageChange(event) {
@@ -347,6 +348,9 @@ class CommunicationRequest extends Component {
       this.setState({ dosageAmount: transformedNumber });
     }
 
+  }
+  redirectTo(path) {
+    window.location = `${window.location.protocol}//${window.location.host}/`+path;
   }
   onClickLogout() {
     sessionStorage.removeItem('isLoggedIn');
@@ -413,7 +417,7 @@ class CommunicationRequest extends Component {
         this.setState({ loading: true });
         
         try {
-            const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
+            const fhirClient = new Client({ baseUrl: this.props.config.provider.fhir_url });
             const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
             console.log('The token is : ', token);
             fhirClient.bearerToken = token;
@@ -425,6 +429,7 @@ class CommunicationRequest extends Component {
                 console.log("Data::",data);
                 this.setState({dataLoaded:true})
                 this.setState({response:data})
+                this.setState({reqId:data.id})
                 this.setState({ loading: false });
             }).catch((err) => {
                 console.log(err);
@@ -443,7 +448,7 @@ class CommunicationRequest extends Component {
 
     try {
         let res_json = {}
-        this.setState({dataLoaded:false})
+        this.setState({dataLoaded:false,reqId:''})
         let token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
 
         
@@ -465,17 +470,26 @@ class CommunicationRequest extends Component {
                         "reference": "#"+practitionerResource.id
                     }
                 ],
-                "payload": [
-                    {
-                        "contentString": this.state.reason
-                    }
-                ],
-                "sender": {
-                    "reference": "#"+payerResource.id
-                }
-            }
+            "sender": {
+                "reference": "#"+payerResource.id
+              }
+          }
+        let reasons = this.state.reasons.split(",")
+        req_json.payload = []
+        for(var i=0;i<reasons.length;i++){
+          req_json.payload.push({"contentString":reasons[i]})
+        }
+        let documents = this.state.documents
+        for(var i=0;i<documents.length;i++){
+          req_json.payload.push({"contentReference":{"reference":"#"+documents[i]}})
+        }
+
         console.log("Requestqqqq:",req_json)
+
         await this.createFhirResource(req_json,'CommunicationRequest')
+        sessionStorage.setItem('patientId',this.state.patientId)
+        sessionStorage.setItem('practitionerId',this.state.practitionerId)
+        sessionStorage.setItem('payerId',this.state.payerId)
         // this.setState({ response: res_json });
 
     }
@@ -504,6 +518,9 @@ class CommunicationRequest extends Component {
                 <i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-sign-out" aria-hidden="true"></i>Logout</button>
               </div>
             </div>
+            <div className="menu_conf" onClick={() => this.redirectTo('communications')}>
+              <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-comments"></i>
+              Communication List</div>
             <div className="menu_conf" onClick={() => this.setRequestType('config-view')}>
               <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-cog"></i>
               Configuration
@@ -536,21 +553,35 @@ class CommunicationRequest extends Component {
                   <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
                   }
                 </div>
-
-                <div className="header">
-                  Beneficiary ID*
+                <div>
+                    <div className="header">
+                      Beneficiary ID*
+                    </div>
+                    <div className="dropdown">
+                      <Input className='ui fluid   input' type="text" name="patient" fluid value={this.state.patientId} onChange={this.onPatientChange}></Input>
+                    </div>
+                    {this.state.validatePatient === true &&
+                      <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
+                    }
+                </div>
+                <div>
+                  <div className="header">
+                    Reason
                   </div>
-                <div className="dropdown">
-                  <Input className='ui fluid   input' type="text" name="patient" fluid value={this.state.patientId} onChange={this.onPatientChange}></Input>
+                  <div className="dropdown">
+                    <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
+                  </div>
                 </div>
-                {this.state.validatePatient === true &&
-                  <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
-                }
-                <div className="header">
-                  Reason
-                </div>
-                <div className="dropdown">
-                  <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reason} onChange={this.onReasonChange}></Input>
+                <div>
+                  <div className="header">
+                    Documents
+                  </div>
+                  <div className="dropdown">
+                    <DropdownDocument
+                      elementName='documents'
+                      updateCB={this.updateStateElement}
+                     />
+                  </div>
                 </div>
                 <div className="dropdown">
                   <button className="submit-btn btn btn-class button-ready" onClick={this.startLoading}>Submit
@@ -569,7 +600,7 @@ class CommunicationRequest extends Component {
           <div className="right-form" style={{marginTop:"50px"}}>
              {this.state.dataLoaded &&
               <div style={{textAlign:"center",paddingTop:"5%"}}>
-                <p style={{color:"green"}}>CommunicationRequest has been created successfully.</p>
+                <p style={{color:"green"}}>{"CommunicationRequest has been created successfully with id : "+this.state.reqId+"."}</p>
               </div>
               }
           </div>

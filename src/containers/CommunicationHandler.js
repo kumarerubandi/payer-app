@@ -116,6 +116,7 @@ class CommunicationHandler extends Component {
     this.getPrefetchData = this.getPrefetchData.bind(this);
     this.readFHIR = this.readFHIR.bind(this);
     this.onClickMenu = this.onClickMenu.bind(this);
+    this.redirectTo = this.redirectTo.bind(this);
   }
   consoleLog(content, type) {
     let jsonContent = {
@@ -278,6 +279,10 @@ class CommunicationHandler extends Component {
     if (req === "config-view") {
       window.location = `${window.location.protocol}//${window.location.host}/configuration`;
     }
+  }
+
+  redirectTo(path) {
+    window.location = `${window.location.protocol}//${window.location.host}/`+path;
   }
 
   setPatientView(req, res) {
@@ -474,10 +479,14 @@ class CommunicationHandler extends Component {
                 <i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-sign-out" aria-hidden="true"></i>Logout</button>
               </div>
             </div>
+            <div className="menu_conf" onClick={() => this.redirectTo('communication_request')}>
+              <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-comments"></i>
+              Communication Request</div>
             <div className="menu_conf" onClick={() => this.setRequestType('config-view')}>
               <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-cog"></i>
               Configuration
             </div>
+           
           </div>
           <div className="content">
             <div className="left-form" style={{marginTop:"50px"}}>

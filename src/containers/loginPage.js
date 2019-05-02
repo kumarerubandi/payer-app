@@ -81,7 +81,7 @@ class LoginPage extends React.Component {
           <div className="col-12" style={{ 'textAlign': 'center' }}>
           </div>
           <div className="col-12 signin">
-            Provider Application
+            Payer Application
           </div>
           <div className="col-12 padding-top-10px">
             <Input

@@ -287,6 +287,11 @@ input:not(:focus):not([value=""]):valid ~ .floating-label{
   transition: all 2s;
 }
 
+.ui.label{
+  background-color: #8a6d3a !important;
+}
+
+
 
 .visible{
   /* opacity:1; */
@@ -605,6 +610,8 @@ color: green;
   float:right;
   cursor: pointer;
   padding: 5px;
+  font-size: 0.87em;
+  margin-top: 3px
 }
 .menu-content {
     display: none;

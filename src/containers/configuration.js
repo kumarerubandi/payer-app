@@ -141,7 +141,7 @@ class Configuration extends Component {
 
     }
     goHome() {
-        window.location = `${window.location.protocol}//${window.location.host}/communications`;
+        window.location = `${window.location.protocol}//${window.location.host}/communication_request`;
     }
     renderConfiguration() {
         return (
