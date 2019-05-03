@@ -511,7 +511,7 @@ class CommunicationRequest extends Component {
             <span style={{ lineHeight: "35px" }}>Payer App - Communication Request </span>
             <div className="menu">
               <button className="menubtn"><i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-user-circle" aria-hidden="true"></i>
-                {sessionStorage.getItem('name')}<i style={{ paddingLeft: "7px", paddingRight: "3px" }} className="fa fa-caret-down"></i>
+                {sessionStorage.getItem('username')}<i style={{ paddingLeft: "7px", paddingRight: "3px" }} className="fa fa-caret-down"></i>
               </button>
               <div className="menu-content">
                 <button className="logout-btn" onClick={this.onClickLogout}>
@@ -527,7 +527,7 @@ class CommunicationRequest extends Component {
             </div>
           </div>
           <div className="content">
-            <div className="left-form" style={{marginTop:"50px"}}>
+            <div className="left-form">
                 <div>
                   <div className="header">
                     Payer ID*

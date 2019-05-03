@@ -489,7 +489,7 @@ class CommunicationHandler extends Component {
            
           </div>
           <div className="content">
-            <div className="left-form" style={{marginTop:"50px"}}>
+            <div className="left-form">
               {this.state.communicationList.map(resourceObj => (
                 <div className="listItem" key={"#item"+resourceObj.resource.id}>
                   <p key={resourceObj.resource.id}>{"Id: "+resourceObj.resource.id}</p>
