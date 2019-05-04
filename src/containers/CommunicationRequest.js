@@ -579,7 +579,7 @@ class CommunicationRequest extends Component {
                   
                 </div>
 
-                {/*}
+                {/*
                 <div>
                   <div className="header">
                     Documents
