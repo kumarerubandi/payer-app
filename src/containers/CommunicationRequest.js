@@ -40,7 +40,7 @@ class CommunicationRequest extends Component {
       scope: '',
       payer: '',
       patientId: sessionStorage.getItem('patientId'),
-      payerId:"20108",
+      payerId:"10052",
       practitionerId: sessionStorage.getItem('practitionerId'),
       resourceType: null,
       resourceTypeLT: null,
@@ -82,6 +82,7 @@ class CommunicationRequest extends Component {
       documentsList:[],
       documents:[],
       reqId:'',
+      reasons:'',
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
         'step_no': 2, 'step_str': 'Retrieving the required 4 FHIR resources on crd side.', 'step_status': 'step_not_started'
@@ -202,7 +203,7 @@ class CommunicationRequest extends Component {
   }
 
   async readFHIR(resourceType, resourceId) {
-    const fhirClient = new Client({ baseUrl: this.props.config.provider.fhir_url });
+    const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
     // if (this.props.config.payer.authorized_fhir) {
     fhirClient.bearerToken = this.state.accessToken;
     // }
@@ -475,6 +476,7 @@ class CommunicationRequest extends Component {
                 "reference": "#"+payerResource.id
               }
           }
+        
         let reasons = this.state.reasons.split(",")
         req_json.payload = []
         for(var i=0;i<reasons.length;i++){
