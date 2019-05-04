@@ -40,7 +40,7 @@ class CommunicationRequest extends Component {
       scope: '',
       payer: '',
       patientId: sessionStorage.getItem('patientId'),
-      payerId:sessionStorage.getItem('payerId'),
+      payerId:"20108",
       practitionerId: sessionStorage.getItem('practitionerId'),
       resourceType: null,
       resourceTypeLT: null,
@@ -80,6 +80,7 @@ class CommunicationRequest extends Component {
       category_name:"",
       communicationList:[],
       documentsList:[],
+      documents:[],
       reqId:'',
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
@@ -201,7 +202,7 @@ class CommunicationRequest extends Component {
   }
 
   async readFHIR(resourceType, resourceId) {
-    const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
+    const fhirClient = new Client({ baseUrl: this.props.config.provider.fhir_url });
     // if (this.props.config.payer.authorized_fhir) {
     fhirClient.bearerToken = this.state.accessToken;
     // }
@@ -480,8 +481,10 @@ class CommunicationRequest extends Component {
           req_json.payload.push({"contentString":reasons[i]})
         }
         let documents = this.state.documents
-        for(var i=0;i<documents.length;i++){
-          req_json.payload.push({"contentReference":{"reference":"#"+documents[i]}})
+        if(documents != undefined ){
+          for(var i=0;i<documents.length;i++){
+            req_json.payload.push({"contentReference":{"reference":"#"+documents[i]}})
+          }
         }
 
         console.log("Requestqqqq:",req_json)
@@ -566,12 +569,17 @@ class CommunicationRequest extends Component {
                 </div>
                 <div>
                   <div className="header">
-                    Requesting for
+                    Requesting for 
                   </div>
                   <div className="dropdown">
                     <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
+                    <span>( NOTE: Use ',' to separate multiple values.For Example: "Red,Green,Blue" )
+                    </span>
                   </div>
+                  
                 </div>
+
+                {/*}
                 <div>
                   <div className="header">
                     Documents
@@ -583,6 +591,7 @@ class CommunicationRequest extends Component {
                      />
                   </div>
                 </div>
+                */}
                 <div className="dropdown">
                   <button className="submit-btn btn btn-class button-ready" onClick={this.startLoading}>Submit
                       <div id="fse" className={"spinner " + (this.state.loading ? "visible" : "invisible")}>
