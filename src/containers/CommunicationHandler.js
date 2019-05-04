@@ -161,15 +161,15 @@ class CommunicationHandler extends Component {
     
     try {
 
-            console.log("this.props.config.::",this.props.config,this.props.config.payer.fhir_url)
+            // console.log("this.props.config.::",this.props.config,this.props.config.payer.fhir_url)
             const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
             const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
             this.setState({ accessToken: token });
-            console.log('The token is : ', token);
+            // console.log('The token is : ', token);
             
             // let searchResponse = await fhirClient.search({ resourceType: "Communication" })
-            let communicationBundle = await this.readFHIR("Communication","") 
-            console.log("Seacrjh ress",communicationBundle)
+            let communicationBundle = await this.getCommunications()
+            // console.log("Seacrjh ress",communicationBundle)
             if(communicationBundle.total > 0){
               this.setState({communicationList:communicationBundle.entry});
             }
@@ -196,6 +196,29 @@ class CommunicationHandler extends Component {
     return readResponse;
 
   }
+
+   async getCommunications() {
+        var tempUrl = this.props.config.payer.fhir_url;
+        const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+        // console.log('The token is : ', token, tempUrl);
+        const fhirResponse = await fetch(tempUrl + "/Communication?_count=100000", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                'Authorization': 'Bearer ' + token
+            }
+        }).then(response => {
+            // console.log("Recieved response", response);
+            return response.json();
+        }).then((response) => {
+            // console.log("----------response", response);
+            return response;
+        }).catch(reason =>
+            console.log("No response recieved from the server", reason)
+        );
+        return fhirResponse;
+    }
+
 
   async readFHIR(resourceType, resourceId) {
     const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
