@@ -444,7 +444,7 @@ input:not(:focus):not([value=""]):valid ~ .floating-label{
     left: 55%;
 }
 .main{
-  background-image: url("login-bg.jpg");
+  background-image: url("login-bg1.jpg");
   background-color: #cccccc;
     background-repeat: round;
     height: -webkit-fill-available;
