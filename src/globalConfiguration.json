@@ -12,7 +12,7 @@
         }
       ],
       "crd":{
-        "crd_url":"http://localhost:8090/",
+        "crd_url":"http://3.92.187.150:8090/",
         "coverage_decision_path": "cds-services/coverage_decision",
         "coverage_requirement_path": "cds-services/coverage_requirement",
         "patient_view_path":"cds-services/patient_view"

@@ -200,7 +200,7 @@ class Configuration extends Component {
                         }
                         
                     })} */}
-                            <div className='header'>CRD</div>
+                            {/* <div className='header'>CRD</div>
                             <div className='header-child'>CRD URL</div>
                             <div className="dropdown">
                                 <Input className='ui fluid input' type="text" fluid name="crd_url"
@@ -222,7 +222,7 @@ class Configuration extends Component {
                                     onChange={this.onChangeCoverageRequirementPath}
                                     defaultValue={this.state.config.crd.coverage_requirement_path}>
                                 </Input>
-                            </div>
+                            </div> */}
 
                             <div className='header'>Payer FHIR URL</div>
                             <div className="dropdown">
