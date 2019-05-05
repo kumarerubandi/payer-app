@@ -40,7 +40,7 @@ class CommunicationRequest extends Component {
       scope: '',
       payer: '',
       patientId: sessionStorage.getItem('patientId'),
-      payerId:sessionStorage.getItem('payerId'),
+      payerId:"10052",
       practitionerId: sessionStorage.getItem('practitionerId'),
       resourceType: null,
       resourceTypeLT: null,
@@ -80,7 +80,9 @@ class CommunicationRequest extends Component {
       category_name:"",
       communicationList:[],
       documentsList:[],
+      documents:[],
       reqId:'',
+      reasons:'',
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
         'step_no': 2, 'step_str': 'Retrieving the required 4 FHIR resources on crd side.', 'step_status': 'step_not_started'
@@ -418,7 +420,7 @@ class CommunicationRequest extends Component {
         
         try {
             const fhirClient = new Client({ baseUrl: this.props.config.provider.fhir_url });
-            const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+            const token = await createToken(this.props.config.provider.username, this.props.config.provider.password);
             console.log('The token is : ', token);
             fhirClient.bearerToken = token;
             fhirClient.create({
@@ -474,14 +476,17 @@ class CommunicationRequest extends Component {
                 "reference": "#"+payerResource.id
               }
           }
+        
         let reasons = this.state.reasons.split(",")
         req_json.payload = []
         for(var i=0;i<reasons.length;i++){
           req_json.payload.push({"contentString":reasons[i]})
         }
         let documents = this.state.documents
-        for(var i=0;i<documents.length;i++){
-          req_json.payload.push({"contentReference":{"reference":"#"+documents[i]}})
+        if(documents != undefined ){
+          for(var i=0;i<documents.length;i++){
+            req_json.payload.push({"contentReference":{"reference":"#"+documents[i]}})
+          }
         }
 
         console.log("Requestqqqq:",req_json)
@@ -566,12 +571,17 @@ class CommunicationRequest extends Component {
                 </div>
                 <div>
                   <div className="header">
-                    Requesting for
+                    Requesting for 
                   </div>
                   <div className="dropdown">
                     <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
+                    <span>( NOTE: Use ',' to separate multiple values.For Example: "Red,Green,Blue" )
+                    </span>
                   </div>
+                  
                 </div>
+
+                {/*
                 <div>
                   <div className="header">
                     Documents
@@ -583,6 +593,7 @@ class CommunicationRequest extends Component {
                      />
                   </div>
                 </div>
+                */}
                 <div className="dropdown">
                   <button className="submit-btn btn btn-class button-ready" onClick={this.startLoading}>Submit
                       <div id="fse" className={"spinner " + (this.state.loading ? "visible" : "invisible")}>

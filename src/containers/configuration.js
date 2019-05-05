@@ -40,7 +40,9 @@ class Configuration extends Component {
                     fhir_url: props.config.provider.fhir_url,
                     client_secret: props.config.provider.client_secret,
                     client_id: props.config.provider.client_id,
-                    authorized_fhir: props.config.provider.authorized_fhir
+                    authorized_fhir: props.config.provider.authorized_fhir,
+                    username:props.config.provider.username,
+                    password:props.config.provider.password
                 },
                 authorization_service: {
                     auth_token_url: props.config.authorization_service.auth_token_url,
@@ -71,7 +73,22 @@ class Configuration extends Component {
         this.onSaveConfiguration = this.onSaveConfiguration.bind(this);
         this.restToDefaults = this.restToDefaults.bind(this);
         this.goHome = this.goHome.bind(this);
+        this.onChangeProviderPassword = this.onChangeProviderPassword.bind(this);
+        this.onChangeProviderUsername = this.onChangeProviderUsername.bind(this);
     }
+
+    onChangeProviderPassword(event) {
+        let config = this.state.config;
+        config.provider.password = event.target.value
+        this.setState({ config })
+    }
+
+    onChangeProviderUsername(event) {
+        let config = this.state.config;
+        config.provider.username = event.target.value
+        this.setState({ config })
+    }
+
 
     onChangeTokenExpiry(event) {
         let config = this.state.config;
@@ -261,6 +278,24 @@ class Configuration extends Component {
                                     defaultValue={this.state.config.provider.fhir_url}>
                                 </Input>
                             </div>
+
+                            <div className='header-child'>Username</div>
+                            <div className="dropdown">
+                                <Input className='ui fluid input' type="text" fluid name="provider_username"
+                                    onChange={this.onChangeProviderUsername}
+                                    defaultValue={this.state.config.provider.username}>
+                                </Input>
+                            </div>
+
+                            <div className='header-child'>Password</div>
+                            <div className="dropdown">
+                                <Input className='ui fluid input' type="password" fluid name="provider_password"
+                                    onChange={this.onChangeProviderPassword}
+                                    defaultValue={this.state.config.provider.password}>
+                                </Input>
+                            </div>
+
+
                             <div className='header-child'>Client Secret</div>
                             <div className="dropdown">
                                 <Input className='ui fluid input' type="text" name="provider_client_secret"

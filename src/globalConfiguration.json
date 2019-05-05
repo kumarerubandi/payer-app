@@ -18,13 +18,15 @@
         "patient_view_path":"cds-services/patient_view"
       },
       "payer":{
-        "fhir_url": "http://3.92.187.150:8280/payer_fhir/baseDstu3/"
+        "fhir_url": "http://3.92.187.150:8280/payer_fhir/r4/"
       },
       "provider":{
         "fhir_url": "http://3.92.187.150:8280/fhir/baseDstu3/",
         "client_secret": "237b167a-c4d0-4861-856d-6decf5426022",
         "client_id": "app-login",
-        "authorized_fhir": true
+        "authorized_fhir": true,
+        "username":"john",
+        "password":"john123"
       },
       "authorization_service":{
         "auth_token_url": "https://3.92.187.150:8443/auth/realms/ProviderCredentials/protocol/openid-connect/token",
