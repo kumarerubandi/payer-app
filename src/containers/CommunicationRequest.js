@@ -8,7 +8,7 @@ import DropdownDocument from '../components/DropdownDocument';
 import { Input } from 'semantic-ui-react';
 // import { DateInput } from 'semantic-ui-calendar-react';
 import { withRouter } from 'react-router-dom';
-
+import Select from 'react-select';
 import Client from 'fhir-kit-client';
 import 'font-awesome/css/font-awesome.min.css';
 import "react-datepicker/dist/react-datepicker.css";
@@ -21,7 +21,7 @@ import Loader from 'react-loader-spinner';
 import { KEYUTIL } from 'jsrsasign';
 import { createToken } from '../components/Authentication';
 import { connect } from 'react-redux';
-
+import DatetimeRangePicker from 'react-datetime-range-picker';
 
 const types = {
   error: "errorClass",
@@ -40,7 +40,7 @@ class CommunicationRequest extends Component {
       scope: '',
       payer: '',
       patientId: sessionStorage.getItem('patientId'),
-      payerId:"10052",
+      payerId: "10052",
       practitionerId: sessionStorage.getItem('practitionerId'),
       resourceType: null,
       resourceTypeLT: null,
@@ -76,13 +76,15 @@ class CommunicationRequest extends Component {
       frequency: null,
       loadCards: false,
       showMenu: false,
-      service_code:"",
-      category_name:"",
-      communicationList:[],
-      documentsList:[],
-      documents:[],
-      reqId:'',
-      reasons:'',
+      service_code: "",
+      category_name: "",
+      communicationList: [],
+      documentsList: [],
+      documents: [],
+      reqId: '',
+      reasons: '',
+      docType: '',
+      timePeriod: '',
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
         'step_no': 2, 'step_str': 'Retrieving the required 4 FHIR resources on crd side.', 'step_status': 'step_not_started'
@@ -92,8 +94,18 @@ class CommunicationRequest extends Component {
       { 'step_no': 5, 'step_str': 'Retrieving Smart App', 'step_status': 'step_not_started' }],
       errors: {},
       loadingSteps: false,
-      dataLoaded:false
+      dataLoaded: false
     }
+    this.typeOfDocuments = [
+      { value: '34117-2', label: 'History and Physical Note' },
+      { value: '11506-3', label: 'Progress Note' },
+      { value: '57133-1', label: 'Referral Note' },
+      { value: '11488-4', label: 'Consultation Note' },
+      { value: '28570-0', label: 'Procedure Note' },
+      { value: '18776-5', label: 'Care Plan' },
+      { value: '34133-9', label: 'Continuity of Care Document' }
+    ];
+
     this.requirementSteps = [
       { 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       { 'step_no': 2, 'step_str': 'Fetching required FHIR resources at CRD', 'step_status': 'step_not_started' },
@@ -113,7 +125,7 @@ class CommunicationRequest extends Component {
     this.onEncounterChange = this.onEncounterChange.bind(this);
     this.onPatientChange = this.onPatientChange.bind(this);
     this.onPractitionerChange = this.onPractitionerChange.bind(this);
-    this.onPayerChange= this.onPayerChange.bind(this);
+    this.onPayerChange = this.onPayerChange.bind(this);
     this.onReasonChange = this.onReasonChange.bind(this);
     this.changeDosageAmount = this.changeDosageAmount.bind(this);
     this.changeMedicationInput = this.changeMedicationInput.bind(this);
@@ -126,6 +138,8 @@ class CommunicationRequest extends Component {
     this.readFHIR = this.readFHIR.bind(this);
     this.onClickMenu = this.onClickMenu.bind(this);
     this.redirectTo = this.redirectTo.bind(this);
+    this.updateStateElement = this.updateStateElement.bind(this);
+    this.updatetimePeriod = this.updatetimePeriod.bind(this);
   }
   consoleLog(content, type) {
     let jsonContent = {
@@ -137,11 +151,16 @@ class CommunicationRequest extends Component {
     }))
   }
 
-  updateStateElement = (elementName, text) => {
-    console.log(elementName,'elenAME',text)
-    this.setState({ [elementName]: text });
-      // this.setState({ validateIcdCode: false })
-    
+  updateStateElement(event) {
+    console.log("event----------", event)
+    if (event.hasOwnProperty('value')) {
+      this.setState({ docType: event.value });
+    }
+  }
+
+  updatetimePeriod(event) {
+    console.log("event-------", event)
+    this.setState({ timePeriod: event });
   }
 
   validateForm() {
@@ -160,30 +179,30 @@ class CommunicationRequest extends Component {
       formValidate = false;
       this.setState({ validatePayer: true });
     }
-    
+
     return formValidate;
   }
 
   startLoading() {
-    if (this.validateForm()) {
-      this.setState({ loading: true }, () => {
-        this.submit_info();
-      })
-    }
+    // if (this.validateForm()) {
+    this.setState({ loading: true }, () => {
+      this.submit_info();
+    })
+    // }
   }
 
   async componentDidMount() {
-     
+
     try {
-        console.log("this.props.config.::",this.props.config,this.props.config.payer.fhir_url)
-        const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
-        const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-        this.setState({ accessToken: token });
-        console.log('The token is : ', token);
-      } catch (error) {
-        console.log('Communication Creation failed',error);
-      }
-    
+      console.log("this.props.config.::", this.props.config, this.props.config.payer.fhir_url)
+      const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
+      const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+      this.setState({ accessToken: token });
+      console.log('The token is : ', token);
+    } catch (error) {
+      console.log('Communication Creation failed', error);
+    }
+
   }
 
   onClickMenu() {
@@ -191,12 +210,12 @@ class CommunicationRequest extends Component {
     this.setState({ showMenu: !showMenu });
   }
 
-  async getAllRecords(resourceType){
+  async getAllRecords(resourceType) {
     const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
     if (this.props.config.payer.authorized_fhir) {
       fhirClient.bearerToken = this.state.accessToken;
     }
-    let readResponse = await fhirClient.search({ resourceType: resourceType});
+    let readResponse = await fhirClient.search({ resourceType: resourceType });
     console.log('Read Rsponse', readResponse)
     return readResponse;
 
@@ -205,11 +224,31 @@ class CommunicationRequest extends Component {
   async readFHIR(resourceType, resourceId) {
     const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
     // if (this.props.config.payer.authorized_fhir) {
+    console.log("read comm req", resourceType, resourceId);
     fhirClient.bearerToken = this.state.accessToken;
     // }
     let readResponse = await fhirClient.read({ resourceType: resourceType, id: resourceId });
     console.log('Read Rsponse', readResponse)
     return readResponse;
+  }
+
+  async getResources(token, resource, identifier) {
+    var url = this.props.config.payer.fhir_url + "/" + resource + "?identifier=" + identifier;
+    let sender = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': 'Bearer ' + token
+      }
+    }).then(response => {
+      return response.json();
+    }).then((response) => {
+      // console.log("----------response", response);
+      return response;
+    }).catch(reason =>
+      console.log("No response recieved from the server", reason)
+    );
+    return sender;
   }
 
   async getPrefetchData() {
@@ -322,7 +361,7 @@ class CommunicationRequest extends Component {
     this.setState({ validatePayer: false });
   }
 
-  onReasonChange(event){
+  onReasonChange(event) {
     this.setState({ reasons: event.target.value });
   }
 
@@ -352,7 +391,7 @@ class CommunicationRequest extends Component {
 
   }
   redirectTo(path) {
-    window.location = `${window.location.protocol}//${window.location.host}/`+path;
+    window.location = `${window.location.protocol}//${window.location.host}/` + path;
   }
   onClickLogout() {
     sessionStorage.removeItem('isLoggedIn');
@@ -413,99 +452,187 @@ class CommunicationRequest extends Component {
     this.setState({ requirementSteps: steps, loadCards: false });
   }
 
-   async createFhirResource(json,resourceName) {
-        //  console.log("this.state.procedure_code")
-        // console.log(this.state.procedure_code)
-        this.setState({ loading: true });
-        
-        try {
-            const fhirClient = new Client({ baseUrl: this.props.config.provider.fhir_url });
-            const token = await createToken(this.props.config.provider.username, this.props.config.provider.password);
-            console.log('The token is : ', token);
-            fhirClient.bearerToken = token;
-            fhirClient.create({
-                resourceType: resourceName,
-                body: json,
-                headers: { "Content-Type": "application/fhir+json" }
-            }).then((data) => {
-                console.log("Data::",data);
-                this.setState({dataLoaded:true})
-                this.setState({response:data})
-                this.setState({reqId:data.id})
-                this.setState({ loading: false });
-            }).catch((err) => {
-                console.log(err);
-                this.setState({ loading: false });
-            })
-        } catch (error) {
-            console.error('Unable to create resource', error.message);
-            this.setState({ loading: false });
-            this.setState({dataLoaded:false})
-        }
+  async createFhirResource(json, resourceName) {
+    //  console.log("this.state.procedure_code")
+    // console.log(this.state.procedure_code)
+    this.setState({ loading: true });
 
+    try {
+      const fhirClient = new Client({ baseUrl: this.props.config.provider.fhir_url });
+      const token = await createToken(this.props.config.provider.username, this.props.config.provider.password);
+      console.log('The token is : ', token);
+      fhirClient.bearerToken = token;
+      fhirClient.create({
+        resourceType: resourceName,
+        body: json,
+        headers: { "Content-Type": "application/fhir+json" }
+      }).then((data) => {
+        console.log("Data::", data);
+        this.setState({ dataLoaded: true })
+        this.setState({ response: data })
+        this.setState({ reqId: data.id })
+        this.setState({ loading: false });
+      }).catch((err) => {
+        console.log(err);
+        this.setState({ loading: false });
+      })
+    } catch (error) {
+      console.error('Unable to create resource', error.message);
+      this.setState({ loading: false });
+      this.setState({ dataLoaded: false })
     }
 
+  }
+
+  async getRequestID(token) {
+    const min = 1;
+    const max = 10000;
+    const num = parseInt(min + Math.random() * (max - min));
+    console.log("num----------", num);
+    let req_check = await this.getResources(token, "CommunicationRequest", num);
+    console.log("random------------", req_check);
+    if (req_check.hasOwnProperty('total')) {
+      if (req_check.total > 0) {
+        await this.getRequestID(token);
+      }
+      else {
+        return num;
+      }
+    }
+  }
+
+  currentDate(){
+    var date = new Date().getDate(); //Current Date
+    var month = new Date().getMonth() + 1; //Current Month
+    var year = new Date().getFullYear(); //Current Year
+    var hours = new Date().getHours(); //Current Hours
+    var min = new Date().getMinutes(); //Current Minutes
+    var sec = new Date().getSeconds(); //Current Seconds
+      //Setting the value of the date time
+
+    return  year + '-' + month + '-' + date + 'T' + hours + ':' + min + ':' + sec+'-08:00'
+  }
 
   async submit_info() {
 
     try {
-        let res_json = {}
-        this.setState({dataLoaded:false,reqId:''})
-        let token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+      console.log("innnn");
+      let res_json = {}
+      this.setState({ dataLoaded: false, reqId: '' })
+      let token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
 
-        
-        let json_request = await this.getJson();
-        // let accessToken = this.state.accessToken;
-        let accessToken = token;
-        this.setState({accessToken});
-        let patientResource = await this.readFHIR("Patient",""+this.state.patientId) 
-        let practitionerResource = await this.readFHIR("Practitioner",""+this.state.practitionerId) 
-        let  payerResource = await this.readFHIR("Organization",""+this.state.payerId)
-        console.log(patientResource,practitionerResource,payerResource);
-        let req_json = {
-            "resourceType":"CommunicationRequest",
-            "contained":[patientResource,practitionerResource,payerResource],
-            "subject":{"reference":"#"+patientResource.id},
-            "status": "active",
-            "recipient": [
-                    {
-                        "reference": "#"+practitionerResource.id
-                    }
-                ],
-            "sender": {
-                "reference": "#"+payerResource.id
+
+      let json_request = await this.getJson();
+      // let accessToken = this.state.accessToken;
+      let accessToken = token;
+      this.setState({ accessToken });
+      // let patientResource = await this.readFHIR("Patient", "" + this.state.patientId)
+      // let practitionerResource = await this.readFHIR("Practitioner", "" + this.state.practitionerId)
+      // let payerResource = await this.readFHIR("Organization", "" + this.state.payerId)
+      // console.log(patientResource, practitionerResource, payerResource);
+      // let req_json = {
+      //   "resourceType": "CommunicationRequest",
+      //   "contained": [patientResource, practitionerResource, payerResource],
+      //   "subject": { "reference": "#" + patientResource.id },
+      //   "status": "active",
+      //   "recipient": [
+      //     {
+      //       "reference": "#" + practitionerResource.id
+      //     }
+      //   ],
+      //   "sender": {
+      //     "reference": "#" + payerResource.id
+      //   }
+      // }
+      let request_id = await this.getRequestID(token);
+      console.log("this.state.timePeriod-----",this.state.timePeriod);
+      let req_json = {
+        "resourceType": "CommunicationRequest",
+        "identifier": [
+          {
+            "system": "http://www.jurisdiction.com/insurer/123456",
+            "value": request_id
+          }
+        ],
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://acme.org/messagetypes",
+                "code": "SolicitedAttachmentRequest"
               }
+            ]
           }
-        
-        let reasons = this.state.reasons.split(",")
-        req_json.payload = []
-        for(var i=0;i<reasons.length;i++){
-          req_json.payload.push({"contentString":reasons[i]})
-        }
-        let documents = this.state.documents
-        if(documents != undefined ){
-          for(var i=0;i<documents.length;i++){
-            req_json.payload.push({"contentReference":{"reference":"#"+documents[i]}})
+        ],
+        "priority": "routine",
+        "medium": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationMode",
+                "code": "WRITTEN",
+                "display": "written"
+              }
+            ],
+            "text": "written"
           }
+        ],
+        "subject": {
+          "reference": "Patient?identifier=" + this.state.patientId
+        },
+        "requester": {
+          "reference": "Organization?identifier=" + this.state.payerId
+        },
+        "status": "active",
+        "recipient": [
+          {
+            "reference": "Organization?identifier=" + this.state.practitionerId
+          }
+        ],
+        "sender": {
+          "reference": "Organization?identifier=" + this.state.payerId
+        },
+        "about": [
+          {
+            "reference": "Claim?identifier=12347"
+          }
+        ],
+        "occurrencePeriod": {
+          "start": this.state.timePeriod.start,
+          "end": this.state.timePeriod.end
+        },
+        "authoredOn": this.currentDate()
+      }
+
+      let reasons = this.state.reasons.split(",")
+      req_json.payload = []
+      for (var i = 0; i < reasons.length; i++) {
+        req_json.payload.push({ "contentString": reasons[i] })
+      }
+      let documents = this.state.documents
+      if (documents != undefined) {
+        for (var i = 0; i < documents.length; i++) {
+          req_json.payload.push({ "contentReference": { "reference": "#" + documents[i] } })
         }
+      }
 
-        console.log("Requestqqqq:",req_json)
+      console.log("Requestqqqq:", req_json)
 
-        await this.createFhirResource(req_json,'CommunicationRequest')
-        sessionStorage.setItem('patientId',this.state.patientId)
-        sessionStorage.setItem('practitionerId',this.state.practitionerId)
-        sessionStorage.setItem('payerId',this.state.payerId)
-        // this.setState({ response: res_json });
+      // await this.createFhirResource(req_json, 'CommunicationRequest')
+      sessionStorage.setItem('patientId', this.state.patientId)
+      sessionStorage.setItem('practitionerId', this.state.practitionerId)
+      sessionStorage.setItem('payerId', this.state.payerId)
+      // this.setState({ response: res_json });
 
     }
     catch (error) {
       console.log(error)
-      this.setState({ response:error });
+      this.setState({ response: error });
       this.setState({ loading: false });
       if (error instanceof TypeError) {
         this.consoleLog(error.name + ": " + error.message);
       }
-      this.setState({dataLoaded:false})
+      this.setState({ dataLoaded: false })
     }
   }
   renderForm() {
@@ -520,7 +647,7 @@ class CommunicationRequest extends Component {
               </button>
               <div className="menu-content">
                 <button className="logout-btn" onClick={this.onClickLogout}>
-                <i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-sign-out" aria-hidden="true"></i>Logout</button>
+                  <i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-sign-out" aria-hidden="true"></i>Logout</button>
               </div>
             </div>
             <div className="menu_conf" onClick={() => this.redirectTo('communications')}>
@@ -533,55 +660,73 @@ class CommunicationRequest extends Component {
           </div>
           <div className="content">
             <div className="left-form">
-                <div>
-                  <div className="header">
-                    Payer ID*
+              <div>
+                <div className="header">
+                  Payer ID*
                       </div>
-                  <div className="dropdown">
-                    <Input className='ui fluid   input' type="text" name="payerId" fluid value={this.state.payerId} onChange={this.onPayerChange}></Input>
-
-                  </div>
-                  {this.state.validatePayer=== true &&
-                  <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
-                  }
+                <div className="dropdown">
+                  <Input className='ui fluid   input' type="text" name="payerId" fluid value={this.state.payerId} onChange={this.onPayerChange}></Input>
 
                 </div>
-                <div>
-                  <div className="header">
-                    Practitioner ID*
+                {this.state.validatePayer === true &&
+                  <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
+                }
+
+              </div>
+              <div>
+                <div className="header">
+                  Practitioner ID*
                       </div>
-                  <div className="dropdown">
-                    <Input className='ui fluid   input' type="text" name="practitionerId" fluid value={this.state.practitionerId} onChange={this.onPractitionerChange}></Input>
+                <div className="dropdown">
+                  <Input className='ui fluid   input' type="text" name="practitionerId" fluid value={this.state.practitionerId} onChange={this.onPractitionerChange}></Input>
 
-                  </div>
-                  {this.state.validatePractitioner=== true &&
+                </div>
+                {this.state.validatePractitioner === true &&
                   <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
-                  }
-                </div>
-                <div>
-                    <div className="header">
-                      Beneficiary ID*
+                }
+              </div>
+              <div>
+                <div className="header">
+                  Beneficiary ID*
                     </div>
-                    <div className="dropdown">
-                      <Input className='ui fluid   input' type="text" name="patient" fluid value={this.state.patientId} onChange={this.onPatientChange}></Input>
-                    </div>
-                    {this.state.validatePatient === true &&
-                      <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
-                    }
+                <div className="dropdown">
+                  <Input className='ui fluid   input' type="text" name="patient" fluid value={this.state.patientId} onChange={this.onPatientChange}></Input>
                 </div>
-                <div>
-                  <div className="header">
-                    Requesting for 
+                {this.state.validatePatient === true &&
+                  <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
+                }
+              </div>
+              <div>
+                <div className="header">
+                  Type of Document
                   </div>
-                  <div className="dropdown">
-                    <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
-                    <span>( NOTE: Use ',' to separate multiple values.For Example: "Red,Green,Blue" )
+                <div className="dropdown">
+                  <Select options={this.typeOfDocuments} onChange={this.updateStateElement} value={this.typeOfDocuments.label} />
+                </div>
+
+              </div>
+              <div>
+                <div className="header">
+                  Requesting for
+                  </div>
+                <div className="dropdown">
+                  <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
+                  <span>( NOTE: Use ',' to separate multiple values.For Example: "Red,Green,Blue" )
                     </span>
-                  </div>
-                  
                 </div>
 
-                {/*
+              </div>
+              <div>
+                <div className="header">
+                  Occurence Time period
+                  </div>
+                <div className="dropdown">
+                  <DatetimeRangePicker onChange={this.updatetimePeriod} />
+                </div>
+
+              </div>
+
+              {/*
                 <div>
                   <div className="header">
                     Documents
@@ -594,26 +739,26 @@ class CommunicationRequest extends Component {
                   </div>
                 </div>
                 */}
-                <div className="dropdown">
-                  <button className="submit-btn btn btn-class button-ready" onClick={this.startLoading}>Submit
+              <div className="dropdown">
+                <button className="submit-btn btn btn-class button-ready" onClick={this.startLoading}>Submit
                       <div id="fse" className={"spinner " + (this.state.loading ? "visible" : "invisible")}>
-                        <Loader
-                          type="Oval"
-                          color="#fff"
-                          height="15"
-                          width="15"
-                        />
-                </div>
-              </button>
+                    <Loader
+                      type="Oval"
+                      color="#fff"
+                      height="15"
+                      width="15"
+                    />
+                  </div>
+                </button>
               </div>
             </div>
           </div>
-          <div className="right-form" style={{marginTop:"50px"}}>
-             {this.state.dataLoaded &&
-              <div style={{textAlign:"center",paddingTop:"5%"}}>
-                <p style={{color:"green"}}>{"CommunicationRequest has been created successfully with id : "+this.state.reqId+"."}</p>
+          <div className="right-form" style={{ marginTop: "50px" }}>
+            {this.state.dataLoaded &&
+              <div style={{ textAlign: "center", paddingTop: "5%" }}>
+                <p style={{ color: "green" }}>{"CommunicationRequest has been created successfully with id : " + this.state.reqId + "."}</p>
               </div>
-              }
+            }
           </div>
         </div>
       </React.Fragment>);
@@ -688,7 +833,7 @@ class CommunicationRequest extends Component {
       fhirServer: this.state.fhirUrl,
       hook: this.state.hook,
       payerName: this.state.payer,
-      service_code:this.state.service_code,
+      service_code: this.state.service_code,
       fhirAuthorization: {
         "access_token": this.state.accessToken,
         "token_type": this.props.config.authorization_service.token_type, // json
@@ -741,7 +886,7 @@ class CommunicationRequest extends Component {
 function mapStateToProps(state) {
   console.log(state);
   return {
-      config: state.config,
+    config: state.config,
   };
 };
 export default withRouter(connect(mapStateToProps)(CommunicationRequest));

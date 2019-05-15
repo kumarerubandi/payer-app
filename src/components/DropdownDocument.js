@@ -1,14 +1,18 @@
 import React, {Component} from 'react';
 import {Dropdown} from 'semantic-ui-react';
 
-const defaultValues = [
-    { key: '234', text: '#234', value: '234' },
-    { key: '546', text: '#546', value: '546' },
-    { key: '789', text: '#789', value: '789' }
-    ]
+const defaultValues =[
+  { 'code': '34117-2', 'text': 'History and Physical Note' },
+  { 'code': '11506-3', 'text': 'Progress Note' },
+  { 'code': '57133-1', 'text': 'Referral Note' },
+  { 'code': '11488-4', 'text': 'Consultation Note' },
+  { 'code': '28570-0', 'text': 'Procedure Note' },
+  { 'code': '18776-5', 'text': 'Care Plan' },
+  { 'code': '34133-9', 'text': 'Continuity of Care Document' }
+  ];
 
 function dropDownOptions() {
-  return defaultValues.map((v) => {return {key: v.key, text: v.text, value: v.value}})
+  return defaultValues.map((v) => {return {code: v.code, text: v.text}})
 }
 
 let blackBorder = "blackBorder";
@@ -16,18 +20,20 @@ let blackBorder = "blackBorder";
 export default class DropdownDocument extends Component {
   constructor(props){
     super(props);
-    this.state = { options: dropDownOptions() ,currentValue:[]}
+    this.state = { currentValue: ""}
+    this.handleChange = this.handleChange.bind(this);
+ 
   };
 
-
-  handleChange = (e, { value }) => {
-    this.props.updateCB(this.props.elementName, value)
-    this.setState({ currentValue: value })
+  handleChange = (e, { code }) => {
+    console.log(this.props,code);
+    this.props.updateCB(this.props.elementName, code)
+    this.setState({ currentValue: code })
   }
 
-
   render() {
-    const { currentValue } = this.state
+    console.log("this.state",this.state);
+    const { currentValue } = this.state;
     if(currentValue){
         blackBorder = "blackBorder";
     }else{
@@ -35,14 +41,13 @@ export default class DropdownDocument extends Component {
     }
     return (
       <Dropdown
-      className={"dropdownCode " +blackBorder}
-        options={this.state.options}
-        placeholder='Choose Code'
+      className={blackBorder}
+        options={defaultValues}
+        placeholder='Select Document'
         search
         selection
-        multiple
         fluid
-        value={currentValue}
+        
         onChange={this.handleChange}
       />
     )
