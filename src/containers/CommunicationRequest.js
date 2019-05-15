@@ -85,6 +85,7 @@ class CommunicationRequest extends Component {
       reasons: '',
       docType: '',
       timePeriod: '',
+      isDocument: true,
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
         'step_no': 2, 'step_str': 'Retrieving the required 4 FHIR resources on crd side.', 'step_status': 'step_not_started'
@@ -140,6 +141,8 @@ class CommunicationRequest extends Component {
     this.redirectTo = this.redirectTo.bind(this);
     this.updateStateElement = this.updateStateElement.bind(this);
     this.updatetimePeriod = this.updatetimePeriod.bind(this);
+    this.updateDataElement = this.updateDataElement.bind(this);
+    this.updateDoc = this.updateDoc.bind(this);
   }
   consoleLog(content, type) {
     let jsonContent = {
@@ -154,8 +157,16 @@ class CommunicationRequest extends Component {
   updateStateElement(event) {
     console.log("event----------", event)
     if (event.hasOwnProperty('value')) {
-      this.setState({ docType: event.value });
+      this.setState({ docType: event });
     }
+  }
+
+  updateDoc(e) {
+    this.setState({ isDocument: true });
+  }
+
+  updateDataElement(e) {
+    this.setState({ isDocument: false });
   }
 
   updatetimePeriod(event) {
@@ -501,22 +512,21 @@ class CommunicationRequest extends Component {
     }
   }
 
-  currentDate(){
+  currentDate() {
     var date = new Date().getDate(); //Current Date
     var month = new Date().getMonth() + 1; //Current Month
     var year = new Date().getFullYear(); //Current Year
     var hours = new Date().getHours(); //Current Hours
     var min = new Date().getMinutes(); //Current Minutes
     var sec = new Date().getSeconds(); //Current Seconds
-      //Setting the value of the date time
+    //Setting the value of the date time
 
-    return  year + '-' + month + '-' + date + 'T' + hours + ':' + min + ':' + sec+'-08:00'
+    return year + '-' + month + '-' + date + 'T' + hours + ':' + min + ':' + sec + '-08:00'
   }
 
   async submit_info() {
 
     try {
-      console.log("innnn");
       let res_json = {}
       this.setState({ dataLoaded: false, reqId: '' })
       let token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
@@ -545,7 +555,7 @@ class CommunicationRequest extends Component {
       //   }
       // }
       let request_id = await this.getRequestID(token);
-      console.log("this.state.timePeriod-----",this.state.timePeriod);
+      // console.log("this.state.timePeriod-----", this.state.timePeriod);
       let req_json = {
         "resourceType": "CommunicationRequest",
         "identifier": [
@@ -603,18 +613,40 @@ class CommunicationRequest extends Component {
         },
         "authoredOn": this.currentDate()
       }
-
-      let reasons = this.state.reasons.split(",")
-      req_json.payload = []
-      for (var i = 0; i < reasons.length; i++) {
-        req_json.payload.push({ "contentString": reasons[i] })
+      req_json.payload = [];
+      console.log("this.state.isDocument", this.state.isDocument);
+      console.log("this.state.docType", this.state.docType);
+      if (this.state.isDocument) {
+        let document = this.state.docType;
+        let ext = [];
+        ext.push({
+          'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
+          "valueCodeableConcept": {
+            "coding": [
+              {
+                "system": "http://loinc.org",
+                "code": document.value
+              }
+            ]
+          }
+        })
+        req_json.payload.push({
+          'extension': ext,
+          "contentString": 'Please provide '+document.label
+        });
       }
-      let documents = this.state.documents
-      if (documents != undefined) {
-        for (var i = 0; i < documents.length; i++) {
-          req_json.payload.push({ "contentReference": { "reference": "#" + documents[i] } })
+      else {
+        let reasons = this.state.reasons.split(",")
+        for (var i = 0; i < reasons.length; i++) {
+          req_json.payload.push({ "contentString": reasons[i] })
         }
       }
+      // let documents = this.state.documents
+      // if (documents != undefined) {
+      //   for (var i = 0; i < documents.length; i++) {
+      //     req_json.payload.push({ "contentReference": { "reference": "#" + documents[i] } })
+      //   }
+      // }
 
       console.log("Requestqqqq:", req_json)
 
@@ -697,25 +729,33 @@ class CommunicationRequest extends Component {
                 }
               </div>
               <div>
-                <div className="header">
-                  Type of Document
-                  </div>
-                <div className="dropdown">
-                  <Select options={this.typeOfDocuments} onChange={this.updateStateElement} value={this.typeOfDocuments.label} />
+                <div><span className="header">Select Payload type</span>
+                  <input type="radio" checked={this.state.isDocument === true} onChange={this.updateDoc} /> Document
+                <input type="radio" checked={this.state.isDocument === false} onChange={this.updateDataElement} />Data Elements
                 </div>
-
               </div>
-              <div>
-                <div className="header">
-                  Requesting for
+              {this.state.isDocument &&
+                <div>
+                  <div className="header">
+                    Type of Document
                   </div>
-                <div className="dropdown">
-                  <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
-                  <span>( NOTE: Use ',' to separate multiple values.For Example: "Red,Green,Blue" )
+                  <div className="dropdown">
+                    <Select options={this.typeOfDocuments} onChange={this.updateStateElement} value={this.typeOfDocuments.label} />
+                  </div>
+
+                </div>}
+              {this.state.isDocument === false &&
+                <div>
+                  <div className="header">
+                    Requesting for
+                  </div>
+                  <div className="dropdown">
+                    <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
+                    <span>( NOTE: Use ',' to separate multiple values.For Example: "Red,Green,Blue" )
                     </span>
-                </div>
+                  </div>
 
-              </div>
+                </div>}
               <div>
                 <div className="header">
                   Occurence Time period
