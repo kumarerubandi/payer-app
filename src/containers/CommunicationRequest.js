@@ -233,6 +233,12 @@ class CommunicationRequest extends Component {
       const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
       const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
       this.setState({ accessToken: token });
+      var date = new Date()
+      this.setState({occurenceStartDate:date.toISOString()})
+      this.setState({occurenceEndDate:date.toISOString()})
+      this.setState({payloadStartDate:date.toISOString()})
+      this.setState({payloadEndDate:date.toISOString()})
+
       console.log('The token is : ', token);
     } catch (error) {
       console.log('Communication Creation failed', error);
@@ -487,17 +493,17 @@ class CommunicationRequest extends Component {
     this.setState({ requirementSteps: steps, loadCards: false });
   }
 
-  async createFhirResource(json, resourceName) {
+  async createFhirResource(json, resourceName,url) {
     //  console.log("this.state.procedure_code")
     // console.log(this.state.procedure_code)
     this.setState({ loading: true });
 
     try {
-      const fhirClient = new Client({ baseUrl: this.props.config.provider.fhir_url });
+      const fhirClient = new Client({ baseUrl: url});
       const token = await createToken(this.props.config.provider.username, this.props.config.provider.password);
       console.log('The token is : ', token);
       fhirClient.bearerToken = token;
-      fhirClient.create({
+      let data = fhirClient.create({
         resourceType: resourceName,
         body: json,
         headers: { "Content-Type": "application/fhir+json" }
@@ -512,12 +518,12 @@ class CommunicationRequest extends Component {
         console.log(err);
         this.setState({ loading: false });
       })
+      return data
     } catch (error) {
       console.error('Unable to create resource', error.message);
       this.setState({ loading: false });
       this.setState({ dataLoaded: false })
     }
-
   }
   async getFhirResource(resourceType, searchParameter) {
     //  console.log("this.state.procedure_code")
@@ -687,11 +693,23 @@ class CommunicationRequest extends Component {
             }
           ]
         }
+        ext.push({
+          'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
+          'valueCodeableConcept':{
+            "coding": [
+              {
+                "system": "http://loinc.org",
+              }
+            ]
+          }
+        })
         for(var i =0; i<documents.length;i++){
           var fields = documents[i].split('|')
           valueCodeableConcept.coding[0].code = fields[0]
+          ext[0].valueCodeableConcept.coding[0].code = fields[0]
           req_json.payload.push({
-            'cdex-payload-clinical-note-type':{'url': url,'valueCodeableConcept':valueCodeableConcept},
+            'extension':ext,
+            'cdex-payload-clinical-note-type':{'url': url,'extension':ext,'valueCodeableConcept':valueCodeableConcept},
             "contentString": "Please provide "+fields[1]+ " recorded during "+startDate.substring(0,10)+" - "+endDate.substring(0,10)
           })
         }
@@ -699,19 +717,21 @@ class CommunicationRequest extends Component {
       else {
         let vitalSigns = this.state.vitalSigns
         console.log('inside else',vitalSigns)
-        // let timePeriod = this.state.payloadtimePeriod
-        // let endDate= timePeriod.end.toISOString();
         let endDate= this.state.payloadEndDate
-        // let startDate = timePeriod.start.toISOString();
         let startDate = this.state.payloadStartDate
-
         let url = "http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string"
+        let ext=[];
+        ext.push({
+          'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type'
+        })
         for (var i = 0; i < vitalSigns.length; i++) {
           console.log('in this looop')
           var fields=vitalSigns[i].split("|")
           let valueString ="Observation?patient.identifier="+this.state.patientId+"&date=gt"+startDate+"&date=lt"+endDate+"&code="+fields[0]
+          ext[0].valueString = valueString
           req_json.payload.push({
-              'cdex-payload-query-string': {'url':url,'valueString':valueString},
+              'extension': ext,
+              'cdex-payload-query-string': {'url':url,'extension':ext,'valueString':valueString},
               "contentString": "Please provide "+fields[1]+" recorded during "+startDate.substring(0,10)+" - "+endDate.substring(0,10)
             })
         }
@@ -726,9 +746,11 @@ class CommunicationRequest extends Component {
       console.log("Requestqqqq:", req_json)
       console.log(JSON.stringify(req_json))
 
-      let commRequest = await this.createFhirResource(req_json, 'CommunicationRequest')
+      let commRequest = await this.createFhirResource(req_json, 'CommunicationRequest',this.props.config.provider.fhir_url )
       console.log(commRequest,'yess')
-
+      req_json.identifier.value = commRequest.identifier.value  
+      let communication = await this.createFhirResource(req_json, 'CommunicationRequest',this.props.config.payer.fhir_url)
+      console.log(communication,'yess plese')
       sessionStorage.setItem('patientId', this.state.patientId)
       sessionStorage.setItem('practitionerId', this.state.practitionerId)
       sessionStorage.setItem('payerId', this.state.payerId)
@@ -869,7 +891,7 @@ class CommunicationRequest extends Component {
                 </div>
               }
                 <div className="dropdown">
-                  <DatetimeRangePicker onChange={this.updatePayloadtimePeriod} />
+                  <DatetimeRangePicker onChange={this.updatePayloadtimePeriod} defaultValue />
                 </div>
 
               </div>
