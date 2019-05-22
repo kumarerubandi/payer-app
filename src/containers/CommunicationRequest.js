@@ -88,6 +88,10 @@ class CommunicationRequest extends Component {
       docType: '',
       timePeriod: '',
       payloadtimePeriod:'',
+      occurenceStartDate:'',
+      occurenceEndDate:'',
+      payloadStartDate:'',
+      payloadEndDate:'',
       isDocument: true,
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
@@ -179,11 +183,19 @@ class CommunicationRequest extends Component {
 
   updatetimePeriod(event) {
     console.log("event-------", event)
-    this.setState({ timePeriod: event }); 
+    let endDate = event.end.toISOString();
+    let startDate= event.start.toISOString();
+    this.setState({ occurenceStartDate: startDate }); 
+    this.setState({ occurenceEndDate: endDate }); 
   }
   updatePayloadtimePeriod(event) {
     console.log("event-------", event)
-    this.setState({ payloadtimePeriod: event }); 
+    let endDate = event.end.toISOString();
+    let startDate= event.start.toISOString();
+    this.setState({ payloadStartDate: startDate }); 
+    this.setState({ payloadEndDate: endDate }); 
+
+    // this.setState({ payloadtimePeriod: event }); 
   }
 
   validateForm() {
@@ -592,7 +604,9 @@ class CommunicationRequest extends Component {
       //     "reference": "#" + payerResource.id
       //   }
       // }
-      console.log(this.state.timePeriod.end.toISOString(),"++")
+      // console.log(this.state.timePeriod.end.toISOString(),"++")
+      var date = new Date()
+      var currentDateTime = date.toISOString()
       let request_id = await this.getRequestID(token);
       // console.log("this.state.timePeriod-----", this.state.timePeriod);
       let req_json = {
@@ -647,10 +661,10 @@ class CommunicationRequest extends Component {
         //   }
         // ],
         "occurrencePeriod": {
-          "start": this.state.timePeriod.start.toISOString(),
-          "end": this.state.timePeriod.end.toISOString()
+          "start": this.state.occurenceStartDate,
+          "end": this.state.occurenceEndDate
         },
-        "authoredOn": this.currentDate()
+        "authoredOn": currentDateTime
       }
       
       req_json.payload = [];
@@ -659,10 +673,12 @@ class CommunicationRequest extends Component {
       if (this.state.isDocument) {
         let documents = this.state.documents;
         let ext = [];
-        let timePeriod = this.state.payloadtimePeriod
-        let endDate= timePeriod.end.toISOString();
-        let startDate = timePeriod.start.toISOString();
-        console.log(timePeriod,'uoo')
+        // let timePeriod = this.state.payloadtimePeriod
+        // let endDate= timePeriod.end.toISOString();
+        let endDate= this.state.payloadEndDate
+        // let startDate = timePeriod.start.toISOString();
+        let startDate = this.state.payloadStartDate
+        // console.log(timePeriod,'uoo')
         let url = 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type'
         let valueCodeableConcept ={
           "coding": [
@@ -683,9 +699,12 @@ class CommunicationRequest extends Component {
       else {
         let vitalSigns = this.state.vitalSigns
         console.log('inside else',vitalSigns)
-        let timePeriod = this.state.payloadtimePeriod
-        let endDate= timePeriod.end.toISOString();
-        let startDate = timePeriod.start.toISOString();
+        // let timePeriod = this.state.payloadtimePeriod
+        // let endDate= timePeriod.end.toISOString();
+        let endDate= this.state.payloadEndDate
+        // let startDate = timePeriod.start.toISOString();
+        let startDate = this.state.payloadStartDate
+
         let url = "http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string"
         for (var i = 0; i < vitalSigns.length; i++) {
           console.log('in this looop')
