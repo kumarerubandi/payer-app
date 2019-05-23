@@ -2,13 +2,13 @@ import React, {Component} from 'react';
 import {Dropdown} from 'semantic-ui-react';
 
 const defaultValues =[
-  { 'code': '34117-2', 'text': 'History and Physical Note' },
-  { 'code': '11506-3', 'text': 'Progress Note' },
-  { 'code': '57133-1', 'text': 'Referral Note' },
-  { 'code': '11488-4', 'text': 'Consultation Note' },
-  { 'code': '28570-0', 'text': 'Procedure Note' },
-  { 'code': '18776-5', 'text': 'Care Plan' },
-  { 'code': '34133-9', 'text': 'Continuity of Care Document' }
+  { 'key': '34117-2', 'text': 'History and Physical Note','value':'34117-2|History and Physical Note' },
+  { 'key': '11506-3', 'text': 'Progress Note','value':'11506-3|Progress Note' },
+  { 'key': '57133-1', 'text': 'Referral Note','value':'57133-1|Referral Note' },
+  { 'key': '11488-4', 'text': 'Consultation Note','value':'11488-4|Consultation Note' },
+  { 'key': '28570-0', 'text': 'Procedure Note','value':'28570-0|Procedure Note' },
+  { 'key': '18776-5', 'text': 'Care Plan','value':'18776-5|Care Plan' },
+  { 'key': '34133-9', 'text': 'Continuity of Care Document','value':'34133-9|Continuity of Care Document' }
   ];
 
 function dropDownOptions() {
@@ -25,10 +25,10 @@ export default class DropdownDocument extends Component {
  
   };
 
-  handleChange = (e, { code }) => {
-    console.log(this.props,code);
-    this.props.updateCB(this.props.elementName, code)
-    this.setState({ currentValue: code })
+  handleChange = (e, { value }) => {
+    console.log(this.props,value);
+    this.props.updateCB(this.props.elementName, value)
+    this.setState({ currentValue: value })
   }
 
   render() {
@@ -43,11 +43,11 @@ export default class DropdownDocument extends Component {
       <Dropdown
       className={blackBorder}
         options={defaultValues}
-        placeholder='Select Document'
+        placeholder='Select Clinical Note'
         search
         selection
         fluid
-        
+        multiple
         onChange={this.handleChange}
       />
     )

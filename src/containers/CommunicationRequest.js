@@ -5,6 +5,7 @@ import React, { Component } from 'react';
 // import DropdownPayer from '../components/DropdownPayer';
 // import DropdownServiceCode from '../components/DropdownServiceCode';
 import DropdownDocument from '../components/DropdownDocument';
+import DropdownVitalSigns from '../components/DropdownVitalSigns';
 import { Input } from 'semantic-ui-react';
 // import { DateInput } from 'semantic-ui-calendar-react';
 import { withRouter } from 'react-router-dom';
@@ -40,7 +41,7 @@ class CommunicationRequest extends Component {
       scope: '',
       payer: '',
       patientId: sessionStorage.getItem('patientId'),
-      payerId: "10052",
+      payerId: "6677829",
       practitionerId: sessionStorage.getItem('practitionerId'),
       resourceType: null,
       resourceTypeLT: null,
@@ -82,9 +83,15 @@ class CommunicationRequest extends Component {
       documentsList: [],
       documents: [],
       reqId: '',
+      vitalSigns:[],
       reasons: '',
       docType: '',
       timePeriod: '',
+      payloadtimePeriod:'',
+      occurenceStartDate:'',
+      occurenceEndDate:'',
+      payloadStartDate:'',
+      payloadEndDate:'',
       isDocument: true,
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
@@ -97,15 +104,7 @@ class CommunicationRequest extends Component {
       loadingSteps: false,
       dataLoaded: false
     }
-    this.typeOfDocuments = [
-      { value: '34117-2', label: 'History and Physical Note' },
-      { value: '11506-3', label: 'Progress Note' },
-      { value: '57133-1', label: 'Referral Note' },
-      { value: '11488-4', label: 'Consultation Note' },
-      { value: '28570-0', label: 'Procedure Note' },
-      { value: '18776-5', label: 'Care Plan' },
-      { value: '34133-9', label: 'Continuity of Care Document' }
-    ];
+    
 
     this.requirementSteps = [
       { 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
@@ -140,7 +139,9 @@ class CommunicationRequest extends Component {
     this.onClickMenu = this.onClickMenu.bind(this);
     this.redirectTo = this.redirectTo.bind(this);
     this.updateStateElement = this.updateStateElement.bind(this);
+    this.updateDocumentType = this.updateDocumentType.bind(this);
     this.updatetimePeriod = this.updatetimePeriod.bind(this);
+    this.updatePayloadtimePeriod = this.updatePayloadtimePeriod.bind(this);
     this.updateDataElement = this.updateDataElement.bind(this);
     this.updateDoc = this.updateDoc.bind(this);
   }
@@ -154,8 +155,17 @@ class CommunicationRequest extends Component {
     }))
   }
 
-  updateStateElement(event) {
-    console.log("event----------", event)
+  updateStateElement=(elementName,value)=> {
+    console.log("event----------", value,elementName)
+    this.setState({[elementName]:value})
+    console.log(this.state.vitalSigns,'yoooo')
+    // if (value.hasOwnProperty('value')) {
+    //   // this.setState({ docType: event });
+    // }
+    // this.set 
+  }
+  updateDocumentType(event) {
+    console.log("event", event)
     if (event.hasOwnProperty('value')) {
       this.setState({ docType: event });
     }
@@ -163,15 +173,29 @@ class CommunicationRequest extends Component {
 
   updateDoc(e) {
     this.setState({ isDocument: true });
+    this.setState({vitalSigns:[]})
   }
 
   updateDataElement(e) {
     this.setState({ isDocument: false });
+    this.setState({documents:[]})
   }
 
   updatetimePeriod(event) {
     console.log("event-------", event)
-    this.setState({ timePeriod: event });
+    let endDate = event.end.toISOString();
+    let startDate= event.start.toISOString();
+    this.setState({ occurenceStartDate: startDate }); 
+    this.setState({ occurenceEndDate: endDate }); 
+  }
+  updatePayloadtimePeriod(event) {
+    console.log("event-------", event)
+    let endDate = event.end.toISOString();
+    let startDate= event.start.toISOString();
+    this.setState({ payloadStartDate: startDate }); 
+    this.setState({ payloadEndDate: endDate }); 
+
+    // this.setState({ payloadtimePeriod: event }); 
   }
 
   validateForm() {
@@ -209,6 +233,12 @@ class CommunicationRequest extends Component {
       const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
       const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
       this.setState({ accessToken: token });
+      var date = new Date()
+      this.setState({occurenceStartDate:date.toISOString()})
+      this.setState({occurenceEndDate:date.toISOString()})
+      this.setState({payloadStartDate:date.toISOString()})
+      this.setState({payloadEndDate:date.toISOString()})
+
       console.log('The token is : ', token);
     } catch (error) {
       console.log('Communication Creation failed', error);
@@ -463,17 +493,17 @@ class CommunicationRequest extends Component {
     this.setState({ requirementSteps: steps, loadCards: false });
   }
 
-  async createFhirResource(json, resourceName) {
+  async createFhirResource(json, resourceName,url) {
     //  console.log("this.state.procedure_code")
     // console.log(this.state.procedure_code)
     this.setState({ loading: true });
 
     try {
-      const fhirClient = new Client({ baseUrl: this.props.config.provider.fhir_url });
+      const fhirClient = new Client({ baseUrl: url});
       const token = await createToken(this.props.config.provider.username, this.props.config.provider.password);
       console.log('The token is : ', token);
       fhirClient.bearerToken = token;
-      fhirClient.create({
+      let data = fhirClient.create({
         resourceType: resourceName,
         body: json,
         headers: { "Content-Type": "application/fhir+json" }
@@ -483,21 +513,46 @@ class CommunicationRequest extends Component {
         this.setState({ response: data })
         this.setState({ reqId: data.id })
         this.setState({ loading: false });
+        return data;
       }).catch((err) => {
         console.log(err);
         this.setState({ loading: false });
       })
+      return data
     } catch (error) {
       console.error('Unable to create resource', error.message);
       this.setState({ loading: false });
       this.setState({ dataLoaded: false })
+    }
+  }
+  async getFhirResource(resourceType, searchParameter) {
+    //  console.log("this.state.procedure_code")
+    // console.log(this.state.procedure_code)
+    // this.setState({ loading: true });
+
+    try {
+      const fhirClient = new Client({ baseUrl: this.props.config.provider.fhir_url });
+      const token = await createToken(this.props.config.provider.username, this.props.config.provider.password);
+      console.log('The token is : ', token);
+      fhirClient.bearerToken = token;
+      fhirClient.search({ resourceType: resourceType, searchParams: searchParameter  })
+        .then((response) => {
+          console.log(response,'++++');
+          return response;
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    } catch (error) {
+      console.error( error.message);
+      // this.setState({ dataLoaded: false })
     }
 
   }
 
   async getRequestID(token) {
     const min = 1;
-    const max = 10000;
+    const max = 1000000000;
     const num = parseInt(min + Math.random() * (max - min));
     console.log("num----------", num);
     let req_check = await this.getResources(token, "CommunicationRequest", num);
@@ -513,15 +568,18 @@ class CommunicationRequest extends Component {
   }
 
   currentDate() {
-    var date = new Date().getDate(); //Current Date
-    var month = new Date().getMonth() + 1; //Current Month
-    var year = new Date().getFullYear(); //Current Year
-    var hours = new Date().getHours(); //Current Hours
-    var min = new Date().getMinutes(); //Current Minutes
-    var sec = new Date().getSeconds(); //Current Seconds
-    //Setting the value of the date time
+    // var date = new Date().getDate(); //Current Date
+    // var month = new Date().getMonth() + 1; //Current Month
+    // var year = new Date().getFullYear(); //Current Year
+    // var hours = new Date().getHours(); //Current Hours
+    // var min = new Date().getMinutes(); //Current Minutes
+    // var sec = new Date().getSeconds(); //Current Seconds
+    // //Setting the value of the date time
 
-    return year + '-' + month + '-' + date + 'T' + hours + ':' + min + ':' + sec + '-08:00'
+    // return year + '-' + month + '-' + date + 'T' + hours + ':' + min + ':' + sec + '-08:00'
+    var date = new Date()
+    var currentDateTime = date.toISOString()
+    return currentDateTime
   }
 
   async submit_info() {
@@ -530,8 +588,6 @@ class CommunicationRequest extends Component {
       let res_json = {}
       this.setState({ dataLoaded: false, reqId: '' })
       let token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-
-
       let json_request = await this.getJson();
       // let accessToken = this.state.accessToken;
       let accessToken = token;
@@ -554,6 +610,9 @@ class CommunicationRequest extends Component {
       //     "reference": "#" + payerResource.id
       //   }
       // }
+      // console.log(this.state.timePeriod.end.toISOString(),"++")
+      var date = new Date()
+      var currentDateTime = date.toISOString()
       let request_id = await this.getRequestID(token);
       // console.log("this.state.timePeriod-----", this.state.timePeriod);
       let req_json = {
@@ -602,43 +661,79 @@ class CommunicationRequest extends Component {
         "sender": {
           "reference": "Organization?identifier=" + this.state.payerId
         },
-        "about": [
-          {
-            "reference": "Claim?identifier=12347"
-          }
-        ],
+        // "about": [
+        //   {
+        //     "reference": "Claim?identifier=12347"
+        //   }
+        // ],
         "occurrencePeriod": {
-          "start": this.state.timePeriod.start,
-          "end": this.state.timePeriod.end
+          "start": this.state.occurenceStartDate,
+          "end": this.state.occurenceEndDate
         },
-        "authoredOn": this.currentDate()
+        "authoredOn": currentDateTime
       }
+      
       req_json.payload = [];
       console.log("this.state.isDocument", this.state.isDocument);
       console.log("this.state.docType", this.state.docType);
       if (this.state.isDocument) {
-        let document = this.state.docType;
+        let documents = this.state.documents;
         let ext = [];
+        // let timePeriod = this.state.payloadtimePeriod
+        // let endDate= timePeriod.end.toISOString();
+        let endDate= this.state.payloadEndDate
+        // let startDate = timePeriod.start.toISOString();
+        let startDate = this.state.payloadStartDate
+        // console.log(timePeriod,'uoo')
+        let url = 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type'
+        let valueCodeableConcept ={
+          "coding": [
+            {
+              "system": "http://loinc.org",
+            }
+          ]
+        }
         ext.push({
           'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
-          "valueCodeableConcept": {
+          'valueCodeableConcept':{
             "coding": [
               {
                 "system": "http://loinc.org",
-                "code": document.value
               }
             ]
           }
         })
-        req_json.payload.push({
-          'extension': ext,
-          "contentString": 'Please provide '+document.label
-        });
+        for(var i =0; i<documents.length;i++){
+          var fields = documents[i].split('|')
+          valueCodeableConcept.coding[0].code = fields[0]
+          ext[0].valueCodeableConcept.coding[0].code = fields[0]
+          req_json.payload.push({
+            'extension':ext,
+            'cdex-payload-clinical-note-type':{'url': url,'extension':ext,'valueCodeableConcept':valueCodeableConcept},
+            "contentString": "Please provide "+fields[1]+ " recorded during "+startDate.substring(0,10)+" - "+endDate.substring(0,10)
+          })
+        }
       }
       else {
-        let reasons = this.state.reasons.split(",")
-        for (var i = 0; i < reasons.length; i++) {
-          req_json.payload.push({ "contentString": reasons[i] })
+        let vitalSigns = this.state.vitalSigns
+        console.log('inside else',vitalSigns)
+        let endDate= this.state.payloadEndDate
+        let startDate = this.state.payloadStartDate
+        let url = "http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string"
+        let ext=[];
+        ext.push({
+          'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string'
+        })
+        for (var i = 0; i < vitalSigns.length; i++) {
+          console.log('in this looop')
+          var fields=vitalSigns[i].split("|")
+          let valueString ="Observation?patient.identifier="+this.state.patientId+"&date=gt"+startDate+"&date=lt"+endDate+"&code="+fields[0]
+          ext[0].valueString = valueString
+          req_json.payload.push({
+              'extension': ext,
+              'cdex-payload-query-string': {'url':url,'extension':ext,'valueString':valueString},
+              "contentString": "Please provide "+fields[1]+" recorded during "+startDate.substring(0,10)+" - "+endDate.substring(0,10)
+            })
         }
       }
       // let documents = this.state.documents
@@ -649,8 +744,13 @@ class CommunicationRequest extends Component {
       // }
 
       console.log("Requestqqqq:", req_json)
+      console.log(JSON.stringify(req_json))
 
-      // await this.createFhirResource(req_json, 'CommunicationRequest')
+      let commRequest = await this.createFhirResource(req_json, 'CommunicationRequest',this.props.config.provider.fhir_url )
+      console.log(commRequest,'yess')
+      req_json.identifier.value = commRequest.identifier.value  
+      let communication = await this.createFhirResource(req_json, 'CommunicationRequest',this.props.config.payer.fhir_url)
+      console.log(communication,'yess plese')
       sessionStorage.setItem('patientId', this.state.patientId)
       sessionStorage.setItem('practitionerId', this.state.practitionerId)
       sessionStorage.setItem('payerId', this.state.payerId)
@@ -694,7 +794,7 @@ class CommunicationRequest extends Component {
             <div className="left-form">
               <div>
                 <div className="header">
-                  Payer ID*
+                  Payer Identifier*
                       </div>
                 <div className="dropdown">
                   <Input className='ui fluid   input' type="text" name="payerId" fluid value={this.state.payerId} onChange={this.onPayerChange}></Input>
@@ -707,7 +807,7 @@ class CommunicationRequest extends Component {
               </div>
               <div>
                 <div className="header">
-                  Practitioner ID*
+                  Practitioner NPI*
                       </div>
                 <div className="dropdown">
                   <Input className='ui fluid   input' type="text" name="practitionerId" fluid value={this.state.practitionerId} onChange={this.onPractitionerChange}></Input>
@@ -719,7 +819,7 @@ class CommunicationRequest extends Component {
               </div>
               <div>
                 <div className="header">
-                  Beneficiary ID*
+                  Beneficiary Identifier*
                     </div>
                 <div className="dropdown">
                   <Input className='ui fluid   input' type="text" name="patient" fluid value={this.state.patientId} onChange={this.onPatientChange}></Input>
@@ -730,17 +830,18 @@ class CommunicationRequest extends Component {
               </div>
               <div>
                 <div><span className="header">Select Payload type</span>
-                  <input type="radio" checked={this.state.isDocument === true} onChange={this.updateDoc} /> Document
+                  <input type="radio" checked={this.state.isDocument === true} onChange={this.updateDoc} /> Clinical Note
                 <input type="radio" checked={this.state.isDocument === false} onChange={this.updateDataElement} />Data Elements
                 </div>
               </div>
               {this.state.isDocument &&
                 <div>
                   <div className="header">
-                    Type of Document
+                    Clinical Note
                   </div>
                   <div className="dropdown">
-                    <Select options={this.typeOfDocuments} onChange={this.updateStateElement} value={this.typeOfDocuments.label} />
+                    <DropdownDocument elementName="documents"  updateCB={this.updateStateElement}/>
+                    {/* <Select options={this.typeOfDocuments} onChange={this.updateDocumentType} value={this.typeOfDocuments.label} /> */}
                   </div>
 
                 </div>}
@@ -750,13 +851,27 @@ class CommunicationRequest extends Component {
                     Requesting for
                   </div>
                   <div className="dropdown">
-                    <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
+                    {/* <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
                     <span>( NOTE: Use ',' to separate multiple values.For Example: "Red,Green,Blue" )
-                    </span>
+                    </span> */}
+                    <DropdownVitalSigns elementName="vitalSigns"  updateCB={this.updateStateElement}/>
+
                   </div>
+
+                  {/* <div className="dropdown">
+                  <Select options={this.typeOfVitalSigns} 
+                    isMulti
+                    name="vitalsigns"
+                    className="basic-multi-select"
+                    classNamePrefix="select"
+                    onChange={this.updateVitalSigns} 
+                    value={this.typeOfVitalSigns.label} />
+                  </div> */}
 
                 </div>}
               <div>
+                
+              <div> 
                 <div className="header">
                   Occurence Time period
                   </div>
@@ -765,7 +880,23 @@ class CommunicationRequest extends Component {
                 </div>
 
               </div>
+              {this.state.isDocument &&
+                <div className="header">
+                  Clinical Note Time period
+                  </div>
+              }
+              {this.state.isDocument == false &&
+                <div className="header">
+                    Observation Time period
+                </div>
+              }
+                <div className="dropdown">
+                  <DatetimeRangePicker onChange={this.updatePayloadtimePeriod} defaultValue />
+                </div>
 
+              </div>
+
+              
               {/*
                 <div>
                   <div className="header">
