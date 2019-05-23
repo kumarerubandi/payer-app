@@ -722,7 +722,7 @@ class CommunicationRequest extends Component {
         let url = "http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string"
         let ext=[];
         ext.push({
-          'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type'
+          'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string'
         })
         for (var i = 0; i < vitalSigns.length; i++) {
           console.log('in this looop')
