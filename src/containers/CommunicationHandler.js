@@ -74,9 +74,21 @@ class CommunicationHandler extends Component {
       frequency: null,
       loadCards: false,
       showMenu: false,
-      service_code:"",
-      category_name:"",
-      communicationList:[],
+      service_code: "",
+      category_name: "",
+      communicationList: [],
+      communicationReqList: [],
+      withCommunication: [],
+      withoutCommunication: [],
+      form_load: false,
+      patient_name: '',
+      gender: '',
+      ident: '',
+      birthDate: '',
+      contentStrings: [],
+      received: [],
+      payer_org: '',
+      provider_org: '',
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
         'step_no': 2, 'step_str': 'Retrieving the required 4 FHIR resources on crd side.', 'step_status': 'step_not_started'
@@ -113,10 +125,14 @@ class CommunicationHandler extends Component {
     this.changeMedicationEndDate = this.changeMedicationEndDate.bind(this);
     this.onClickLogout = this.onClickLogout.bind(this);
     this.consoleLog = this.consoleLog.bind(this);
+    this.getCommunicationReq = this.getCommunicationReq.bind(this);
     this.getPrefetchData = this.getPrefetchData.bind(this);
     this.readFHIR = this.readFHIR.bind(this);
     this.onClickMenu = this.onClickMenu.bind(this);
+    this.getPatientDetails = this.getPatientDetails.bind(this);
     this.redirectTo = this.redirectTo.bind(this);
+    this.sortCommunications = this.sortCommunications.bind(this);
+
   }
   consoleLog(content, type) {
     let jsonContent = {
@@ -129,11 +145,11 @@ class CommunicationHandler extends Component {
   }
 
   updateStateElement = (elementName, text) => {
-    console.log(elementName,'elenAME')
+    // console.log(elementName, 'elenAME')
 
-      this.setState({ [elementName]: text });
-      this.setState({ validateIcdCode: false })
-    
+    this.setState({ [elementName]: text });
+    this.setState({ validateIcdCode: false })
+
   }
 
   validateForm() {
@@ -158,26 +174,75 @@ class CommunicationHandler extends Component {
   }
 
   async componentDidMount() {
-    
     try {
+      // console.log("this.props.config.::",this.props.config,this.props.config.payer.fhir_url)
+      const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
+      const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+      this.setState({ accessToken: token });
+      // console.log('The token is : ', token);
 
-            // console.log("this.props.config.::",this.props.config,this.props.config.payer.fhir_url)
-            const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
-            const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-            this.setState({ accessToken: token });
-            // console.log('The token is : ', token);
-            
-            // let searchResponse = await fhirClient.search({ resourceType: "Communication" })
-            let communicationBundle = await this.getCommunications()
-            // console.log("Seacrjh ress",communicationBundle)
-            if(communicationBundle.total > 0){
-              this.setState({communicationList:communicationBundle.entry});
+      // let searchResponse = await fhirClient.search({ resourceType: "Communication" })
+      let communicationBundle = await this.getCommunications()
+      // console.log("Seacrjh ress",communicationBundle)
+      let comm = [];
+      if (communicationBundle.total > 0) {
+        let items = communicationBundle.entry.map((item, key) =>
+          comm.push(item.resource)
+        );
+        this.setState({ communicationList: comm });
+      }
+      let communicationReqBundle = await this.getCommunicationReq()
+      let comm_req = [];
+      if (communicationReqBundle.total > 0) {
+        let items = communicationReqBundle.entry.map((item, key) =>
+          comm_req.push(item.resource)
+        );
+        this.setState({ communicationReqList: comm_req });
+      }
+      this.sortCommunications(comm_req, comm);
+    } catch (error) {
+
+      console.log('Communication Creation failed', error);
+    }
+
+  }
+
+  sortCommunications(comm_req, comm) {
+    // console.log(comm_req, comm);
+    let withC = [];
+    let withoutC = [];
+    let request = comm_req.map((req, key) => {
+      let added = false;
+      let communication = comm.map((c, k) => {
+        if (req.hasOwnProperty("id") && c.hasOwnProperty('basedOn')) {
+          // if (c.hasOwnProperty('contained') && c['basedOn'][0]['reference'])
+          //   let contained = c['contained'].map((cont, l) => {
+          //     if (cont['id'] in c['basedOn'][0]['reference']) {
+          //   }
+          // });
+          if (c['basedOn'][0]['reference'].charAt(0) == '#') {
+            if (req['id'] == c['basedOn'][0]['reference'].slice(0, 1)) {
+              added = true;
+              withC.push({ 'communication_request': req, 'communication': c });
             }
-        } catch (error) {
-
-            console.log('Communication Creation failed',error);
+          }
+          else if (c['basedOn'][0]['reference'].includes('/')) {
+            let a = c['basedOn'][0]['reference'].split('/')
+            if (a.length > 0) {
+              if (req['id'] == a[a.length - 1]) {
+                added = true;
+                withC.push({ 'communication_request': req, 'communication': c });
+              }
+            }
+          }
         }
-
+      });
+      if (added == false) {
+        withoutC.push(req);
+      }
+    });
+    this.setState({ withCommunication: withC });
+    this.setState({ withoutCommunication: withoutC });
   }
 
   onClickMenu() {
@@ -185,51 +250,72 @@ class CommunicationHandler extends Component {
     this.setState({ showMenu: !showMenu });
   }
 
-  async getAllRecords(resourceType){
+  async getAllRecords(resourceType) {
     const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
     // if (this.props.config.payer.authorized_fhir) {
     //   fhirClient.bearerToken = this.state.accessToken;
     // }
     fhirClient.bearerToken = this.state.accessToken;
-    let readResponse = await fhirClient.search({ resourceType: resourceType});
-    console.log('Read Rsponse', readResponse)
+    let readResponse = await fhirClient.search({ resourceType: resourceType });
+    // console.log('Read Rsponse', readResponse)
     return readResponse;
 
   }
 
-   async getCommunications() {
-        var tempUrl = this.props.config.payer.fhir_url;
-        const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-        // console.log('The token is : ', token, tempUrl);
-        const fhirResponse = await fetch(tempUrl + "/Communication?_count=100000", {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                'Authorization': 'Bearer ' + token
-            }
-        }).then(response => {
-            // console.log("Recieved response", response);
-            return response.json();
-        }).then((response) => {
-            // console.log("----------response", response);
-            return response;
-        }).catch(reason =>
-            console.log("No response recieved from the server", reason)
-        );
-        return fhirResponse;
-    }
+  async getCommunications() {
+    var tempUrl = this.props.config.payer.fhir_url;
+    const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    // console.log('The token is : ', token, tempUrl);
+    const fhirResponse = await fetch(tempUrl + "/Communication?_count=100000", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': 'Bearer ' + token
+      }
+    }).then(response => {
+      // console.log("Recieved response", response);
+      return response.json();
+    }).then((response) => {
+      // console.log("----------response", response);
+      return response;
+    }).catch(reason =>
+      console.log("No response recieved from the server", reason)
+    );
+    return fhirResponse;
+  }
 
+  async getCommunicationReq() {
+    var tempUrl = this.props.config.payer.fhir_url;
+    const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    // console.log('The token is : ', token, tempUrl);
+    const fhirResponse = await fetch(tempUrl + "/CommunicationRequest?_count=100000", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': 'Bearer ' + token
+      }
+    }).then(response => {
+      // console.log("Recieved response", response);
+      return response.json();
+    }).then((response) => {
+      // console.log("----------response", response);
+      return response;
+    }).catch(reason =>
+      console.log("No response recieved from the server", reason)
+    );
+    return fhirResponse;
+  }
 
   async readFHIR(resourceType, resourceId) {
     const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
     fhirClient.bearerToken = this.state.accessToken;
     let readResponse = await fhirClient.read({ resourceType: resourceType, id: resourceId });
-    console.log('Read Rsponse', readResponse)
+    // console.log('Read Rsponse', readResponse)
     return readResponse;
   }
 
   async getPrefetchData() {
-    console.log(this.state.hook);
+    // console.log(this.state.hook);
     var docs = [];
     if (this.state.hook === "patient-view") {
       var prefectInput = { "Patient": this.state.patientId };
@@ -270,7 +356,7 @@ class CommunicationHandler extends Component {
   }
 
   async getResourceData(token, prefectInput) {
-    console.log("Prefetch input--", JSON.stringify(prefectInput));
+    // console.log("Prefetch input--", JSON.stringify(prefectInput));
     const url = this.props.config.crd.crd_url + "prefetch";
     await fetch(url, {
       method: "POST",
@@ -305,7 +391,7 @@ class CommunicationHandler extends Component {
   }
 
   redirectTo(path) {
-    window.location = `${window.location.protocol}//${window.location.host}/`+path;
+    window.location = `${window.location.protocol}//${window.location.host}/` + path;
   }
 
   setPatientView(req, res) {
@@ -382,7 +468,7 @@ class CommunicationHandler extends Component {
         if (index !== 0) {
           steps[index - 1].step_status = "step_done"
         }
-        console.log(index, steps[index])
+        // console.log(index, steps[index])
         if (index !== steps.length) {
           steps[index].step_status = "step_loading"
         }
@@ -431,7 +517,7 @@ class CommunicationHandler extends Component {
     let json_request = await this.getJson();
     let accessToken = this.state.accessToken;
     accessToken = token;
-    this.setState({accessToken});
+    this.setState({ accessToken });
     let url = '';
     if (this.state.request === 'coverage-requirement' && this.state.hook !== 'patient-view') {
       url = this.props.config.crd.crd_url + '' + this.props.config.crd.coverage_requirement_path;
@@ -439,7 +525,7 @@ class CommunicationHandler extends Component {
     if (this.state.hook === 'patient-view') {
       url = this.props.config.crd.crd_url + '' + this.props.config.crd.patient_view_path;
     }
-    console.log("Fetching response from " + url + ",types.info")
+    // console.log("Fetching response from " + url + ",types.info")
     try {
       const fhirResponse = await fetch(url, {
         method: "POST",
@@ -487,45 +573,180 @@ class CommunicationHandler extends Component {
       }
     }
   }
-  renderCommunications() {
-    return (
-      <React.Fragment>
-        <div>
-          <div className="main_heading">
-            <span style={{ lineHeight: "35px" }}>Payer App - Communications</span>
-            <div className="menu">
-              <button className="menubtn"><i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-user-circle" aria-hidden="true"></i>
-                {sessionStorage.getItem('name')}<i style={{ paddingLeft: "7px", paddingRight: "3px" }} className="fa fa-caret-down"></i>
-              </button>
-              <div className="menu-content">
-                <button className="logout-btn" onClick={this.onClickLogout}>
-                <i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-sign-out" aria-hidden="true"></i>Logout</button>
-              </div>
-            </div>
-            <div className="menu_conf" onClick={() => this.redirectTo('communication_request')}>
-              <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-comments"></i>
-              Communication Request</div>
-            <div className="menu_conf" onClick={() => this.setRequestType('config-view')}>
-              <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-cog"></i>
-              Configuration
-            </div>
-           
-          </div>
-          <div className="content">
-            <div className="left-form">
-              {this.state.communicationList.map(resourceObj => (
-                <div className="listItem" key={"#item"+resourceObj.resource.id}>
-                  <p key={resourceObj.resource.id}>{"Id: "+resourceObj.resource.id}</p>
-                  <p key={"#status"+resourceObj.resource.id}>{"Status: "+resourceObj.resource.status}</p>
-                </div>
 
-              ))}
-            </div>
-          </div>
+  async getPatientDetails(patient_id, communication_request, communication) {
+    this.setState({ patient_name: "" });
+    this.setState({ gender: "" });
+    this.setState({ ident: "" });
+    this.setState({ birthDate: "" });
+    this.setState({ provider_org: "" });
+    this.setState({ payer_org: "" });
+    this.setState({ contentStrings: [] });
+    console.log("patient_id---------", patient_id, communication_request);
+    var tempUrl = this.props.config.payer.fhir_url + "/Patient/" + patient_id;
+    const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    let headers = {
+      "Content-Type": "application/json",
+    }
+    if (this.props.config.provider.authorized_fhir) {
+      headers['Authorization'] = 'Bearer ' + token
+    }
+    let patient = await fetch(tempUrl, {
+      method: "GET",
+      headers: headers
+    }).then(response => {
+      return response.json();
+    }).then((response) => {
+      // console.log("----------response", response);
+      let patient = response;
+      console.log("patient---", patient);
+      if (patient) {
+        this.setState({ patient: patient });
+        if (patient.hasOwnProperty("name")) {
+          var name = '';
+          if (patient['name'][0].hasOwnProperty('given')) {
+            patient['name'][0]['given'].map((n) => {
+              name += ' ' + n;
+            });
 
-        </div>
-      </React.Fragment>);
-  };
+            // name = patient['name'][0]['given'][0] + " " + patient['name'][0]['family'];
+
+          }
+          if (patient['name'][0].hasOwnProperty('family')) {
+            name = name + " " + patient['name'][0]['family'];
+          }
+          console.log("name---" + name);
+          this.setState({ patient_name: name })
+        }
+        if (patient.hasOwnProperty("identifier")) {
+          this.setState({ ident: patient['identifier'][0]['value'] });
+        }
+        if (patient.hasOwnProperty("gender")) {
+          this.setState({ gender: patient['gender'] });
+        }
+        if (patient.hasOwnProperty("birthDate")) {
+          this.setState({ birthDate: patient['birthDate'] });
+        }
+        console.log("patient name----------", this.state.patient_name, this.state.patient.resourceType + "?identifier=" + this.state.patient.identifier[0].value);
+      }
+    }).catch(reason =>
+      console.log("No response recieved from the server", reason)
+    );
+    if (communication_request.hasOwnProperty('sender')) {
+      let s = await this.getSenderDetails(communication_request, token);
+    }
+    if (communication_request.hasOwnProperty('payload')) {
+      await this.getRequestedDocuments(communication_request['payload']);
+    }
+    // if (communication_request.hasOwnProperty('occurrencePeriod')) {
+    //   // await this.getDocuments(communication_request['payload']);
+    //   this.setState({ startDate: communication_request.occurrencePeriod.start })
+    //   this.setState({ endDate: communication_request.occurrencePeriod.end })
+    // }
+    // if (communication_request.hasOwnProperty('authoredOn')) {
+    //   this.setState({ recievedDate: communication_request.authoredOn })
+    // }
+    // this.setState({ communicationRequest: communication_request });
+    // await this.getObservationDetails();
+
+    this.setState({ form_load: true });
+  }
+
+  async getRequestedDocuments(payload) {
+    let strings = [];
+    payload.map((c) => {
+      // console.log("ccccccc", c);
+      // if (c.hasOwnProperty('contentReference')) {
+      //     if (c['contentReference']['reference'].replace('#', '')) {
+
+      //     }
+      // }
+      // if (c.hasOwnProperty('extension')) {
+      //     strings.push(c.extension[0]['valueCodeableConcept']['coding'][0]['display']);
+      // }
+      if (c.hasOwnProperty('contentString')) {
+        strings.push(c.contentString)
+      }
+      this.setState({ contentStrings: strings })
+    });
+  }
+
+  async getSenderDetails(communication_request, token) {
+    let payer_org;
+    let provider_org;
+    if (communication_request.hasOwnProperty('sender')) {
+      if (communication_request.sender.reference.charAt(0) == '#') {
+        payer_org = communication_request.sender.reference.replace('#', '')
+      }
+      else if (communication_request.sender.reference.includes('/')) {
+        let a = communication_request.sender.reference.split('/');
+        if (a.length > 0) {
+          payer_org = a[a.length - 1];
+
+        }
+      }
+    }
+    if (communication_request.hasOwnProperty('recipient')) {
+      if (communication_request.recipient[0].reference.charAt(0) == '#') {
+        provider_org = communication_request.recipient[0].reference.replace('#', '')
+      }
+      else if (communication_request.recipient[0].reference.includes('/')) {
+        let a = communication_request.recipient[0].reference.split('/');
+        if (a.length > 0) {
+          provider_org = a[a.length - 1];
+
+        }
+      }
+    }
+
+    var tempUrl = this.props.config.payer.fhir_url;
+    let headers = {
+      "Content-Type": "application/json",
+      'Authorization': 'Bearer ' + token
+    }
+
+    const fhirResponse = await fetch(tempUrl + "/Organization/" + payer_org, {
+      method: "GET",
+      headers: headers
+    }).then(response => {
+      // console.log("Recieved response", response);
+      return response.json();
+    }).then((response) => {
+      // console.log("----------response", response);
+      return response;
+    }).catch(reason =>
+      console.log("No response recieved from the server", reason)
+    );
+    // return fhirResponse;
+    // console.log(fhirResponse, 'respo')
+    if (fhirResponse) {
+      this.setState({ payerOrganization: fhirResponse })
+      this.setState({ payer_org: fhirResponse.name });
+
+    }
+    const recipientResponse = await fetch(tempUrl + "/Organization/" + provider_org, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': 'Bearer ' + token
+      }
+    }).then(response => {
+      // console.log("Recieved response", response);
+      return response.json();
+    }).then((response) => {
+      // console.log("----------response", response);
+      return response;
+    }).catch(reason =>
+      console.log("No response recieved from the server", reason)
+    );
+    // return fhirResponse;
+    // console.log(recipientResponse, 'rest')
+    if (fhirResponse) {
+      this.setState({ provider_org: recipientResponse.name })
+    }
+
+
+  }
 
   async getJson() {
     var patientId = null;
@@ -596,7 +817,7 @@ class CommunicationHandler extends Component {
       fhirServer: this.state.fhirUrl,
       hook: this.state.hook,
       payerName: this.state.payer,
-      service_code:this.state.service_code,
+      service_code: this.state.service_code,
       fhirAuthorization: {
         "access_token": this.state.accessToken,
         "token_type": this.props.config.authorization_service.token_type, // json
@@ -637,11 +858,181 @@ class CommunicationHandler extends Component {
     }
     return request;
   }
+
   render() {
+    let data = this.state.withCommunication;
+    // console.log(this.state.withCommunication, this.state.withoutCommunication)
+
+    let content = data.map((d, i) => {
+      // console.log(d, i);
+      let creceivedDate;
+      if (d['communication'].hasOwnProperty('received')) {
+        creceivedDate = d['communication']["received"]
+      }
+      // console.log(startDate.substring(0, 10), 'stdate')
+      if (d['communication_request'].hasOwnProperty("subject")) {
+        // console.log("-------------------");
+        // let patientId = d['communication_request']['subject']['reference'].replace('#','');
+        let patientId;
+        if (d['communication_request']['subject']['reference'].charAt(0) == '#') {
+          patientId = d['communication_request']['subject']['reference'].replace('#', '')
+        }
+        else if (d['communication_request']['subject']['reference'].includes('/')) {
+          let a = d['communication_request']['subject']['reference'].split('/')
+          if (a.length > 0) {
+            patientId = a[a.length - 1];
+
+          }
+        }
+        // console.log("patientId------",patientId,d['communication_request']['subject']);
+        return (
+          <div key={i}>
+            {i + 1}.  <strong>{d['communication']['resourceType']} (#{d['communication']['id']})</strong> for <strong>{patientId}</strong>  in response to <strong>{d['communication_request']['resourceType']} (#{d['communication_request']['id']})</strong>
+            {creceivedDate &&
+              <span>received on <strong>{creceivedDate.substring(0, 10)}</strong></span>}
+            <button className="btn list-btn" onClick={() => this.getPatientDetails(patientId, d['communication_request'], d['communication'])}>
+              Review
+              </button>
+          </div>
+        )
+      }
+    });
+
+    let requests = this.state.withoutCommunication;
+    let req = requests.map((d, i) => {
+      // console.log(d, i);
+      let endDate;
+      let startDate;
+      let recievedDate;
+      if (d.hasOwnProperty('occurrencePeriod')) {
+        startDate = d["occurrencePeriod"]['start']
+
+        if (d['occurrencePeriod'].hasOwnProperty("end")) {
+          endDate = d["occurrencePeriod"]['end']
+        }
+        else {
+          endDate = "No End Date"
+        }
+      }
+      if (d.hasOwnProperty('authoredOn')) {
+        recievedDate = d["authoredOn"]
+      }
+
+      // console.log(startDate.substring(0, 10), 'stdate')
+      if (d.hasOwnProperty("subject")) {
+        // let patientId = d['subject']['reference'].replace('#', '');
+        let patientId;
+        if (d['subject']['reference'].charAt(0) == '#') {
+          patientId = d['subject']['reference'].replace('#', '')
+        }
+        else if (d['subject']['reference'].includes('/')) {
+          let a = d['subject']['reference'].split('/');
+          if (a.length > 0) {
+            patientId = a[a.length - 1];
+
+          }
+        }
+        // console.log("patientId------",patientId,d['subject']);
+        return (
+          <div key={i}>
+            {i + 1}. <strong>{d['resourceType']} (#{d['id']})</strong> for <strong>{patientId}</strong> .
+            {recievedDate &&
+              <span>
+                Started on <strong>({recievedDate.substring(0, 10)})</strong> .</span>}
+            {endDate &&
+              <div>Communication expected before <strong>({endDate.substring(0, 10)})</strong>
+                </div>}
+            <button className="btn list-btn" onClick={() => this.getPatientDetails(patientId, d, "")}>
+              Review
+              </button>
+          </div>
+
+        )
+      }
+
+    });
+    let docs = this.state.contentStrings.map((request, key) => {
+      if (request) {
+        return (
+          <div key={key}>
+            {request}
+          </div>
+        )
+
+      }
+    });
     return (
-      <div className="attributes mdl-grid">
-        {this.renderCommunications()}
-      </div>)
+      <React.Fragment>
+        <div>
+          <div className="main_heading">
+            <span style={{ lineHeight: "35px" }}>Payer App - Communications</span>
+            <div className="menu">
+              <button className="menubtn"><i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-user-circle" aria-hidden="true"></i>
+                {sessionStorage.getItem('name')}<i style={{ paddingLeft: "7px", paddingRight: "3px" }} className="fa fa-caret-down"></i>
+              </button>
+              <div className="menu-content">
+                <button className="logout-btn" onClick={this.onClickLogout}>
+                  <i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-sign-out" aria-hidden="true"></i>Logout</button>
+              </div>
+            </div>
+            <div className="menu_conf" onClick={() => this.redirectTo('communication_request')}>
+              <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-comments"></i>
+              Communication Request</div>
+            <div className="menu_conf" onClick={() => this.setRequestType('config-view')}>
+              <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-cog"></i>
+              Configuration
+            </div>
+
+          </div>
+          <div className="attributes mdl-grid">
+            {/* {this.renderCommunications()} */}
+            <div className="content">
+              <div className="left-form">
+                <div><h2>Communications Received</h2></div>
+                <div>{content}</div>
+                <div></div>
+                <div><h2>Communications Not Received</h2></div>
+                <div>{req}</div>
+              </div>
+              {this.state.form_load &&
+                <div className="right-form" style={{ paddingTop: "1%" }} >
+                  {this.state.patient_name &&
+                    <div className="data-label">
+                      Patient : <span className="data1"><strong>{this.state.patient_name}</strong></span>
+                    </div>}
+                  {this.state.gender &&
+                    <div className="data-label">
+                      Patient Gender : <span className="data1"><strong>{this.state.gender}</strong></span>
+                    </div>}
+                  {this.state.ident &&
+                    <div className="data-label">
+                      Patient Identifier : <span className="data1"><strong>{this.state.ident}</strong></span>
+                    </div>}
+                  {this.state.birthDate &&
+                    <div className="data-label">
+                      Patient Date of Birth : <span className="data1"><strong>{this.state.birthDate}</strong></span>
+                    </div>}
+                  {this.state.payer_org &&
+                    <div className="data-label">
+                      Payer Organization : <span className="data1"><strong>{this.state.payer_org}</strong></span>
+                    </div>}
+                  {this.state.provider_org &&
+                    <div className="data-label">
+                      Provider Organization : <span className="data1"><strong>{this.state.provider_org}</strong></span>
+                    </div>}
+                  {this.state.contentStrings.length>0 &&
+                    <div className="data-label">
+                      Requests Sent : <span className="data1"><strong>{docs}</strong></span>
+                    </div>}
+
+                </div>}
+            </div>
+
+
+          </div>
+        </div>
+      </React.Fragment >
+    )
   }
 }
 
@@ -649,7 +1040,7 @@ class CommunicationHandler extends Component {
 function mapStateToProps(state) {
   console.log(state);
   return {
-      config: state.config,
+    config: state.config,
   };
 };
 export default withRouter(connect(mapStateToProps)(CommunicationHandler));
