@@ -23,6 +23,14 @@ import { KEYUTIL } from 'jsrsasign';
 import { createToken } from '../components/Authentication';
 import { connect } from 'react-redux';
 import DatetimeRangePicker from 'react-datetime-range-picker';
+import moment from "moment"
+
+let now = new Date();
+let occurenceStartDate = moment(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11,0,0,0)).toISOString();
+let occurenceEndDate = moment(occurenceStartDate).add(8, "days").subtract(1, "seconds").toISOString();
+let yesterday =  moment(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11,0,0,0));
+let payloadStartDate = moment(yesterday).subtract(8,"days").toISOString();
+let payloadEndDate = moment(payloadStartDate).add(8,"days").subtract(1,"seconds").toISOString();
 
 const types = {
   error: "errorClass",
@@ -80,7 +88,6 @@ class CommunicationRequest extends Component {
       service_code: "",
       category_name: "",
       communicationList: [],
-      documentsList: [],
       documents: [],
       reqId: '',
       vitalSigns:[],
@@ -88,10 +95,10 @@ class CommunicationRequest extends Component {
       docType: '',
       timePeriod: '',
       payloadtimePeriod:'',
-      occurenceStartDate:'',
-      occurenceEndDate:'',
-      payloadStartDate:'',
-      payloadEndDate:'',
+      occurenceStartDate:occurenceStartDate,
+      occurenceEndDate:occurenceEndDate,
+      payloadStartDate:payloadStartDate,
+      payloadEndDate:payloadEndDate,
       isDocument: true,
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
@@ -158,7 +165,7 @@ class CommunicationRequest extends Component {
   updateStateElement=(elementName,value)=> {
     console.log("event----------", value,elementName)
     this.setState({[elementName]:value})
-    console.log(this.state.vitalSigns,'yoooo')
+    console.log(this.state.vitalSigns,'yooopo')
     // if (value.hasOwnProperty('value')) {
     //   // this.setState({ docType: event });
     // }
@@ -182,7 +189,7 @@ class CommunicationRequest extends Component {
   }
 
   updatetimePeriod(event) {
-    console.log("event-------", event)
+    // console.log("red-------", startDate,endDate)
     let endDate = event.end.toISOString();
     let startDate= event.start.toISOString();
     this.setState({ occurenceStartDate: startDate }); 
@@ -233,11 +240,15 @@ class CommunicationRequest extends Component {
       const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
       const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
       this.setState({ accessToken: token });
-      var date = new Date()
-      this.setState({occurenceStartDate:date.toISOString()})
-      this.setState({occurenceEndDate:date.toISOString()})
-      this.setState({payloadStartDate:date.toISOString()})
-      this.setState({payloadEndDate:date.toISOString()})
+      // var today = new Date()
+      // this.setState({occurenceStartDate:today.toISOString()})
+      // today.setDate(today.getDate() + 7);
+      // this.setState({occurenceEndDate:today.toISOString()})
+      // var yesterday = new Date()
+      // yesterday.setDate(yesterday.getDate() - 7);
+      // this.setState({payloadStartDate:yesterday.toISOString()})
+      // var date = new Date()
+      // this.setState({payloadEndDate:date.toISOString()})
 
       console.log('The token is : ', token);
     } catch (error) {
@@ -685,31 +696,41 @@ class CommunicationRequest extends Component {
         // let startDate = timePeriod.start.toISOString();
         let startDate = this.state.payloadStartDate
         // console.log(timePeriod,'uoo')
-        let url = 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type'
-        let valueCodeableConcept ={
-          "coding": [
-            {
-              "system": "http://loinc.org",
-            }
-          ]
-        }
-        ext.push({
-          'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
-          'valueCodeableConcept':{
-            "coding": [
-              {
-                "system": "http://loinc.org",
-              }
-            ]
-          }
-        })
         for(var i =0; i<documents.length;i++){
           var fields = documents[i].split('|')
-          valueCodeableConcept.coding[0].code = fields[0]
-          ext[0].valueCodeableConcept.coding[0].code = fields[0]
           req_json.payload.push({
-            'extension':ext,
-            'cdex-payload-clinical-note-type':{'url': url,'extension':ext,'valueCodeableConcept':valueCodeableConcept},
+            'extension':[{
+              'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
+              'valueCodeableConcept':{
+                "coding": [
+                  {
+                    "system": "http://loinc.org",
+                    "code":fields[0]
+                  }
+                ]
+              }
+            }],
+            'cdex-payload-clinical-note-type':{
+                'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
+                'extension':[{
+                  'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
+                  'valueCodeableConcept':{
+                    "coding": [
+                      {
+                        "system": "http://loinc.org",
+                        "code":fields[0]
+                      }
+                    ]
+                  }
+                }],
+                'valueCodeableConcept':{
+                  "coding": [
+                    {
+                      "system": "http://loinc.org",
+                      "code":fields[0]
+                    }
+                  ]
+                }},
             "contentString": "Please provide "+fields[1]+ " recorded during "+startDate.substring(0,10)+" - "+endDate.substring(0,10)
           })
         }
@@ -719,19 +740,23 @@ class CommunicationRequest extends Component {
         console.log('inside else',vitalSigns)
         let endDate= this.state.payloadEndDate
         let startDate = this.state.payloadStartDate
-        let url = "http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string"
-        let ext=[];
-        ext.push({
-          'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string'
-        })
         for (var i = 0; i < vitalSigns.length; i++) {
           console.log('in this looop')
           var fields=vitalSigns[i].split("|")
-          let valueString ="Observation?patient.identifier="+this.state.patientId+"&date=gt"+startDate+"&date=lt"+endDate+"&code="+fields[0]
-          ext[0].valueString = valueString
           req_json.payload.push({
-              'extension': ext,
-              'cdex-payload-query-string': {'url':url,'extension':ext,'valueString':valueString},
+              'extension':[{
+                'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
+                'valueString':"Observation?patient.identifier="+this.state.patientId+"&date=gt"+startDate+"&date=lt"+endDate+"&code="+fields[0]
+              }],
+              'cdex-payload-query-string': {
+                  'url':'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
+                  'extension':[{
+                    'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
+                    'valueString':"Observation?patient.identifier="+this.state.patientId+"&date=gt"+startDate+"&date=lt"+endDate+"&code="+fields[0]
+    
+                  }],
+                  'valueString':"Observation?patient.identifier="+this.state.patientId+"&date=gt"+startDate+"&date=lt"+endDate+"&code="+fields[0]
+                },
               "contentString": "Please provide "+fields[1]+" recorded during "+startDate.substring(0,10)+" - "+endDate.substring(0,10)
             })
         }
@@ -768,6 +793,10 @@ class CommunicationRequest extends Component {
     }
   }
   renderForm() {
+    let local = {
+      "format":"DD-MM-YYYY HH:mm",
+      "sundayFirst" : false
+      }
     return (
       <React.Fragment>
         <div>
@@ -876,7 +905,10 @@ class CommunicationRequest extends Component {
                   Occurence Time period
                   </div>
                 <div className="dropdown">
-                  <DatetimeRangePicker onChange={this.updatetimePeriod} />
+          
+                  <DatetimeRangePicker onChange={this.updatetimePeriod} startDate={this.state.occurenceStartDate} endDate={this.state.occurenceEndDate} />
+                  {/* <DatetimeRangePicker onChange={this.updatetimePeriod} startDate />  */}
+
                 </div>
 
               </div>
@@ -891,7 +923,7 @@ class CommunicationRequest extends Component {
                 </div>
               }
                 <div className="dropdown">
-                  <DatetimeRangePicker onChange={this.updatePayloadtimePeriod} defaultValue />
+                  <DatetimeRangePicker onChange={this.updatePayloadtimePeriod} startDate={this.state.payloadStartDate} endDate={this.state.payloadEndDate} />
                 </div>
 
               </div>
