@@ -32,6 +32,7 @@ let yesterday =  moment(new Date(now.getFullYear(), now.getMonth(), now.getDate(
 let payloadStartDate = moment(yesterday).subtract(8,"days").toISOString();
 let payloadEndDate = moment(payloadStartDate).add(8,"days").subtract(1,"seconds").toISOString();
 
+
 const types = {
   error: "errorClass",
   info: "infoClass",
@@ -695,6 +696,8 @@ class CommunicationRequest extends Component {
         let endDate= this.state.payloadEndDate
         // let startDate = timePeriod.start.toISOString();
         let startDate = this.state.payloadStartDate
+
+        console.log('payloadstart:',startDate,'Payloadendate:',endDate)
         // console.log(timePeriod,'uoo')
         for(var i =0; i<documents.length;i++){
           var fields = documents[i].split('|')
@@ -740,6 +743,7 @@ class CommunicationRequest extends Component {
         console.log('inside else',vitalSigns)
         let endDate= this.state.payloadEndDate
         let startDate = this.state.payloadStartDate
+        console.log('payloadstart:',startDate,'Payloadendate:',endDate)
         for (var i = 0; i < vitalSigns.length; i++) {
           console.log('in this looop')
           var fields=vitalSigns[i].split("|")
