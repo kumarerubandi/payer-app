@@ -671,6 +671,37 @@ class CommunicationRequest extends Component {
             "value": request_id
           }
         ],
+        "contained":[
+          {  
+            "resourceType":"Endpoint",
+            "id":"END123",
+            "meta":{  
+               "versionId":"1",
+               "lastUpdated":"2019-04-09T14:11:04.000+00:00"
+            },
+            "address":"http://3.92.187.150:8180/hapi-fhir-jpaserver/fhir/Communication"
+         },
+         {
+            "resourceType": "Organization",
+            "id": this.state.payerId,
+            "identifier": [
+              {
+                  "system": "http://www.Anthem.com/edi",
+                  "value": "DemoPayer"
+              },
+              {
+                  "system": "https://www.maxmddirect.com/fhir/identifier",
+                  "value": "MaxMDDemoPayerOrganization-eval"
+              }
+          ],
+          "name": "MaxMD Demo Payer Solutions",
+          "endpoint": [
+              {
+                  "reference": "#END123"
+              }
+          ]
+        }
+      ],
         "category": [
           {
             "coding": [
@@ -698,7 +729,8 @@ class CommunicationRequest extends Component {
           "reference": "Patient?identifier=" + this.state.patientId
         },
         "requester": {
-          "reference": "Organization?identifier=" + this.state.payerId
+          // "reference": "Organization?identifier=" + this.state.payerId
+          "reference": "#" + this.state.payerId
         },
         "status": "active",
         "recipient": [
@@ -707,7 +739,7 @@ class CommunicationRequest extends Component {
           }
         ],
         "sender": {
-          "reference": "Organization?identifier=" + this.state.payerId
+          "reference": "#" + this.state.payerId
         },
         // "about": [
         //   {

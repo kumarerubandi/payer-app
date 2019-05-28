@@ -19,24 +19,24 @@
       },
       "payer":{
         "fhir_url": "http://3.92.187.150:8180/hapi-fhir-jpaserver/fhir",
-        "client_secret": "b11c46c4-84c5-4138-9460-1824ecc68217",
-        "client_id": "2dfc4e1473a2fcfb7b84e66f34404c38",
+        "client_secret": "a94a56e2-f6be-4c76-ae12-3b6acf7173d5",
+        "client_id": "d2142e65-0946-474e-8cf4-1427ae6ec3c6",
         "grant_type":"client_credentials",
         "authorizedPayerFhir": true
 
       },
       "provider":{
-        "fhir_url": "http://3.92.187.150:8080/hapi-fhir-jpaserver/fhir",
-        "client_secret": "8e2cbdf6-b680-4e4d-b10b-2b10fb3b065a",
-        "client_id": "64a0acf8e17a2c8734499c813a01fe73",
+        "fhir_url": "https://ehr-sandbox.directmdemail.com:8443/fhir/baseR4",
+        "client_secret": "a94a56e2-f6be-4c76-ae12-3b6acf7173d5",
+        "client_id": "d2142e65-0946-474e-8cf4-1427ae6ec3c6",
         "grant_type":"client_credentials",
-        "authorized_fhir": true,
+        "authorized_fhir": false,
         "username":"john",
         "password":"john123"
       },
       "authorization_service":{
-        "auth_token_url": "https://3.92.187.150:8443/auth/realms/ProviderCredentials/protocol/openid-connect/token",
-        "token_verification_url": "https://3.92.187.150:8443/auth/realms/ClientFhirServer/protocol/openid-connect/token/introspect",
+        "auth_token_url": "https://valtest.mettles.com:8443/auth/realms/ClientFhirServer/protocol/openid-connect/token",
+        "token_verification_url": "https://valtest.mettles.com:8443/auth/realms/ClientFhirServer/protocol/openid-connect/token/introspect",
         "token_type": "Bearer",
         "token_expires_in": 300,
         "scope": "patient/Patient.read patient/Observation.read",
