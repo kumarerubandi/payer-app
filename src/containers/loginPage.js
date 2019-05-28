@@ -53,7 +53,7 @@ class LoginPage extends React.Component {
 
   async onClickLoginSubmit() {
     this.setState({ loading: true, login_error_msg: '' });
-    let tokenResponse = await createToken(this.state.name, this.state.password);
+    let tokenResponse = await createToken('password','payer',this.state.name, this.state.password,true);
     if (tokenResponse !== null && tokenResponse !== undefined) {
       sessionStorage.setItem('username', this.state.name);
       sessionStorage.setItem('password', this.state.password);

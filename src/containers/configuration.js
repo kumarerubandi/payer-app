@@ -34,15 +34,21 @@ class Configuration extends Component {
                     patient_view_path: props.config.crd.patient_view_path
                 },
                 payer: {
-                    fhir_url: props.config.payer.fhir_url
+                    fhir_url: props.config.payer.fhir_url,
+                    grant_type: props.config.payer.grant_type,
+                    client_id : props.config.payer.client_id,
+                    client_secret: props.config.payer.client_secret,
+                    authorizedPayerFhir:props.config.payer.authorizedPayerFhir
                 },
                 provider: {
                     fhir_url: props.config.provider.fhir_url,
                     client_secret: props.config.provider.client_secret,
                     client_id: props.config.provider.client_id,
+                    grant_type: props.config.provider.grant_type,
                     authorized_fhir: props.config.provider.authorized_fhir,
                     username:props.config.provider.username,
-                    password:props.config.provider.password
+                    password:props.config.provider.password,
+                    authorized_fhir: props.config.provider.authorized_fhir
                 },
                 authorization_service: {
                     auth_token_url: props.config.authorization_service.auth_token_url,
@@ -64,9 +70,15 @@ class Configuration extends Component {
         this.onChangeCoverageDecisionPath = this.onChangeCoverageDecisionPath.bind(this);
         this.onChangeCoverageRequirementPath = this.onChangeCoverageRequirementPath.bind(this);
         this.onChangePayerFhirUrl = this.onChangePayerFhirUrl.bind(this);
+        this.onChangePayerClientSecret = this.onChangePayerClientSecret.bind(this);
+        this.onChangePayerClientId = this.onChangePayerClientId.bind(this);
+        this.onChangePayerGrantType = this.onChangePayerGrantType.bind(this);
+        this.handleAPFChange = this.handleAPFChange.bind(this);
         this.onChangeProviderFhirUrl = this.onChangeProviderFhirUrl.bind(this);
-        this.onChangeClientSecret = this.onChangeClientSecret.bind(this);
-        this.onChangeClientId = this.onChangeClientId.bind(this);
+        this.onChangeProviderClientSecret = this.onChangeProviderClientSecret.bind(this);
+        this.onChangeProviderClientId = this.onChangeProviderClientId.bind(this);
+        this.onChangeProviderGrantType = this.onChangeProviderGrantType.bind(this);
+        this.onChangeAuthorizedFhir = this.onChangeAuthorizedFhir.bind(this);
         this.onChangeAuthTokenUrl = this.onChangeAuthTokenUrl.bind(this);
         this.onChangeTokenVerificationUrl = this.onChangeTokenVerificationUrl.bind(this);
         this.onChangeTokenType = this.onChangeTokenType.bind(this);
@@ -115,20 +127,50 @@ class Configuration extends Component {
         config.payer.fhir_url = event.target.value
         this.setState({ config })
     }
+    onChangePayerGrantType(event) {
+        let config = this.state.config;
+        config.payer.grant_type = event.target.value
+        this.setState({ config })
+    }
+    onChangePayerClientId(event) {
+        let config = this.state.config;
+        config.payer.client_id = event.target.value
+        this.setState({ config })
+    }
+    onChangePayerClientSecret(event) {
+        let config = this.state.config;
+        config.payer.client_secret = event.target.value
+        this.setState({ config })
+    }
+    handleAPFChange(event) {
+        let config = this.state.config;
+        config.payer.authorizedPayerFhir = event.target.checked
+        console.log(event.target.checked,'check')
+        this.setState({ config })
+    }
     onChangeProviderFhirUrl(event) {
         let config = this.state.config;
         config.provider.fhir_url = event.target.value
         this.setState({ config })
     }
-    onChangeClientId(event) {
+    onChangeProviderGrantType(event) {
+        let config = this.state.config;
+        config.provider.grant_type = event.target.value
+        this.setState({ config })
+    }
+    onChangeProviderClientId(event) {
         let config = this.state.config;
         config.provider.client_id = event.target.value
         this.setState({ config })
-
     }
-    onChangeClientSecret(event) {
+    onChangeProviderClientSecret(event) {
         let config = this.state.config;
         config.provider.client_secret = event.target.value
+        this.setState({ config })
+    }
+    onChangeAuthorizedFhir(event) {
+        let config = this.state.config;
+        config.provider.authorized_fhir = event.target.checked
         this.setState({ config })
     }
     onChangeAuthTokenUrl(event) {
@@ -231,7 +273,34 @@ class Configuration extends Component {
                                     defaultValue={this.state.config.payer.fhir_url}>
                                 </Input>
                             </div>
-
+                            <div className='header-child'>Payer Grant Type</div>
+                            <div className="dropdown">
+                                <Input className='ui fluid input' type="text" name="payer_grant_type"
+                                    onChange={this.onChangePayerGrantType} fluid
+                                    defaultValue={this.state.config.payer.grant_type}>
+                                </Input>
+                            </div>
+                            <div className='header-child'>Payer Client Secret</div>
+                            <div className="dropdown">
+                                <Input className='ui fluid input' type="text" name="payer_client_secret"
+                                    onChange={this.onChangePayerClientSecret} fluid
+                                    defaultValue={this.state.config.payer.client_secret}>
+                                </Input>
+                            </div>
+                            <div className='header-child'> Payer Client ID</div>
+                            <div className="dropdown">
+                                <Input className='ui fluid input' type="text" name="payer_client_id" fluid
+                                    onChange={this.onChangePayerClientId}
+                                    defaultValue={this.state.config.payer.client_id}>
+                                </Input>
+                            </div>
+                            <div className="header-child">Authorized Payer Fhir<input
+                                            name="authorize_payer_fhir"
+                                            type="checkbox"
+                                            className="input-checkbox"
+                                            value={this.state.config.payer.authorizedPayerFhir}
+                                            checked={this.state.config.payer.authorizedPayerFhir}
+                                            onChange={this.handleAPFChange} /></div>
                             {/* <div className='header'>CDS Service</div>
                     <div className="leftStateInput"><div className='header-child'>VSAC Username</div>
                     <div className="dropdown"><Input className='ui  input' type="text" name="vsac_user"  defaultValue={config.cds_service.vsac_user}></Input></div></div>
@@ -278,7 +347,6 @@ class Configuration extends Component {
                                     defaultValue={this.state.config.provider.fhir_url}>
                                 </Input>
                             </div>
-
                             <div className='header-child'>Username</div>
                             <div className="dropdown">
                                 <Input className='ui fluid input' type="text" fluid name="provider_username"
@@ -286,7 +354,6 @@ class Configuration extends Component {
                                     defaultValue={this.state.config.provider.username}>
                                 </Input>
                             </div>
-
                             <div className='header-child'>Password</div>
                             <div className="dropdown">
                                 <Input className='ui fluid input' type="password" fluid name="provider_password"
@@ -294,22 +361,34 @@ class Configuration extends Component {
                                     defaultValue={this.state.config.provider.password}>
                                 </Input>
                             </div>
-
-
-                            <div className='header-child'>Client Secret</div>
+                            <div className='header-child'>Provider Client Secret</div>
                             <div className="dropdown">
                                 <Input className='ui fluid input' type="text" name="provider_client_secret"
-                                    onChange={this.onChangeClientSecret} fluid
+                                    onChange={this.onChangeProviderClientSecret} fluid
                                     defaultValue={this.state.config.provider.client_secret}>
                                 </Input>
                             </div>
-                            <div className='header-child'>Client ID</div>
+                            <div className='header-child'>Provider Client ID</div>
                             <div className="dropdown">
                                 <Input className='ui fluid input' type="text" name="provider_client_id" fluid
-                                    onChange={this.onChangeClientId}
+                                    onChange={this.onChangeProviderClientId}
                                     defaultValue={this.state.config.provider.client_id}>
                                 </Input>
                             </div>
+                            <div className='header-child'>Provider Grant Type</div>
+                            <div className="dropdown">
+                                <Input className='ui fluid input' type="text" name="provider_grant_type"
+                                    onChange={this.onChangeProviderGrantType} fluid
+                                    defaultValue={this.state.config.provider.grant_type}>
+                                </Input>
+                            </div>
+                            <div className="header-child">Authorized Fhir<input
+                                            name="authorize_fhir"
+                                            className="input-checkbox"
+                                            type="checkbox"
+                                            value={this.state.config.provider.authorized_fhir}
+                                            checked={this.state.config.provider.authorized_fhir}
+                                            onChange={this.onChangeAuthorizedFhir} /></div>
                             <button className="submit-btn btn btn-class button-ready"
                                 onClick={this.onSaveConfiguration}>Save</button>
                             <button className="btn default-btn"

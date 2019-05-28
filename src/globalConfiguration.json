@@ -18,12 +18,18 @@
         "patient_view_path":"cds-services/patient_view"
       },
       "payer":{
-        "fhir_url": "http://3.92.187.150:8180/hapi-fhir-jpaserver/fhir"
+        "fhir_url": "http://3.92.187.150:8180/hapi-fhir-jpaserver/fhir",
+        "client_secret": "b11c46c4-84c5-4138-9460-1824ecc68217",
+        "client_id": "2dfc4e1473a2fcfb7b84e66f34404c38",
+        "grant_type":"client_credentials",
+        "authorizedPayerFhir": true
+
       },
       "provider":{
         "fhir_url": "http://3.92.187.150:8080/hapi-fhir-jpaserver/fhir",
-        "client_secret": "237b167a-c4d0-4861-856d-6decf5426022",
-        "client_id": "app-login",
+        "client_secret": "8e2cbdf6-b680-4e4d-b10b-2b10fb3b065a",
+        "client_id": "64a0acf8e17a2c8734499c813a01fe73",
+        "grant_type":"client_credentials",
         "authorized_fhir": true,
         "username":"john",
         "password":"john123"

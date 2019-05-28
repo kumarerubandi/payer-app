@@ -177,8 +177,8 @@ class CommunicationHandler extends Component {
     try {
       // console.log("this.props.config.::",this.props.config,this.props.config.payer.fhir_url)
       const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
-      const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-      this.setState({ accessToken: token });
+      // const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+      // this.setState({ accessToken: token });
       // console.log('The token is : ', token);
 
       // let searchResponse = await fhirClient.search({ resourceType: "Communication" })
@@ -249,29 +249,34 @@ class CommunicationHandler extends Component {
     var showMenu = this.state.showMenu;
     this.setState({ showMenu: !showMenu });
   }
+  /*Not using this Method Anywhere*/
+  // async getAllRecords(resourceType) {
+  //   const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
+  //   // if (this.props.config.payer.authorized_fhir) {
+  //   //   fhirClient.bearerToken = this.state.accessToken;
+  //   // }
+  //   const token = await createToken(this.props.config.payer.grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'));
 
-  async getAllRecords(resourceType) {
-    const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
-    // if (this.props.config.payer.authorized_fhir) {
-    //   fhirClient.bearerToken = this.state.accessToken;
-    // }
-    fhirClient.bearerToken = this.state.accessToken;
-    let readResponse = await fhirClient.search({ resourceType: resourceType });
-    // console.log('Read Rsponse', readResponse)
-    return readResponse;
+  //   fhirClient.bearerToken = token;
+  //   let readResponse = await fhirClient.search({ resourceType: resourceType });
+  //   // console.log('Read Rsponse', readResponse)
+  //   return readResponse;
 
-  }
+  // }
 
   async getCommunications() {
     var tempUrl = this.props.config.payer.fhir_url;
-    const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    const token = await createToken(this.props.config.payer.grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'));
     // console.log('The token is : ', token, tempUrl);
+    let headers = {
+      "Content-Type": "application/json",
+    }
+    if(this.props.config.payer.authorizedPayerFhir){
+      headers['Authorization']= 'Bearer ' + token
+    }
     const fhirResponse = await fetch(tempUrl + "/Communication?_count=100000", {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        'Authorization': 'Bearer ' + token
-      }
+      headers: headers,
     }).then(response => {
       // console.log("Recieved response", response);
       return response.json();
@@ -286,14 +291,17 @@ class CommunicationHandler extends Component {
 
   async getCommunicationReq() {
     var tempUrl = this.props.config.payer.fhir_url;
-    const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    const token = await createToken(this.props.config.payer.grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'));
     // console.log('The token is : ', token, tempUrl);
+    let headers = {
+      "Content-Type": "application/json",
+    }
+    if(this.props.config.payer.authorizedPayerFhir){
+      headers['Authorization']= 'Bearer ' + token
+    }
     const fhirResponse = await fetch(tempUrl + "/CommunicationRequest?_count=100000", {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        'Authorization': 'Bearer ' + token
-      }
+      headers: headers
     }).then(response => {
       // console.log("Recieved response", response);
       return response.json();
@@ -308,7 +316,10 @@ class CommunicationHandler extends Component {
 
   async readFHIR(resourceType, resourceId) {
     const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
-    fhirClient.bearerToken = this.state.accessToken;
+    let token = await createToken(this.props.config.payer.grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    if(this.props.config.payer.authorizedPayerFhir){
+      fhirClient.bearerToken = token;
+    }
     let readResponse = await fhirClient.read({ resourceType: resourceType, id: resourceId });
     // console.log('Read Rsponse', readResponse)
     return readResponse;
@@ -508,16 +519,18 @@ class CommunicationHandler extends Component {
   async submit_info() {
     this.setState({ loadingSteps: false, stepsErrorString: undefined });
     this.resetSteps();
-    let token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    let token = await createToken('password','payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'),true);
     token = "Bearer " + token;
-    var myHeaders = new Headers({
+    let headers = {
       "Content-Type": "application/json",
-      "authorization": token,
-    });
+    }
+    if(this.props.config.payer.authorizedPayerFhir){
+        headers["authorization"]= token
+    }
     let json_request = await this.getJson();
-    let accessToken = this.state.accessToken;
-    accessToken = token;
-    this.setState({ accessToken });
+    // let accessToken = this.state.accessToken;
+    // accessToken = token;
+    // this.setState({ accessToken });
     let url = '';
     if (this.state.request === 'coverage-requirement' && this.state.hook !== 'patient-view') {
       url = this.props.config.crd.crd_url + '' + this.props.config.crd.coverage_requirement_path;
@@ -529,7 +542,7 @@ class CommunicationHandler extends Component {
     try {
       const fhirResponse = await fetch(url, {
         method: "POST",
-        headers: myHeaders,
+        headers: headers,
         body: JSON.stringify(json_request)
       })
       const res_json = await fhirResponse.json();
@@ -584,7 +597,8 @@ class CommunicationHandler extends Component {
     this.setState({ contentStrings: [] });
     console.log("patient_id---------", patient_id, communication_request);
     var tempUrl = this.props.config.payer.fhir_url + "/Patient/" + patient_id;
-    const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    var grant_type = this.props.config.payer.grant_type
+    const token = await createToken(grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'));
     let headers = {
       "Content-Type": "application/json",
     }
@@ -749,6 +763,7 @@ class CommunicationHandler extends Component {
   }
 
   async getJson() {
+    let token = await createToken('password','payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'),true)
     var patientId = null;
     patientId = this.state.patientId;
     let coverage = {
@@ -819,7 +834,7 @@ class CommunicationHandler extends Component {
       payerName: this.state.payer,
       service_code: this.state.service_code,
       fhirAuthorization: {
-        "access_token": this.state.accessToken,
+        "access_token": token,
         "token_type": this.props.config.authorization_service.token_type, // json
         "expires_in": this.props.config.authorization_service.expires_in, // json
         "scope": this.props.config.authorization_service.scope,

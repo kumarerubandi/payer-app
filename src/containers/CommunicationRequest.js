@@ -239,8 +239,8 @@ class CommunicationRequest extends Component {
     try {
       console.log("this.props.config.::", this.props.config, this.props.config.payer.fhir_url)
       const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
-      const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-      this.setState({ accessToken: token });
+      // const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+      // this.setState({ accessToken: token });
       // var today = new Date()
       // this.setState({occurenceStartDate:today.toISOString()})
       // today.setDate(today.getDate() + 7);
@@ -251,7 +251,7 @@ class CommunicationRequest extends Component {
       // var date = new Date()
       // this.setState({payloadEndDate:date.toISOString()})
 
-      console.log('The token is : ', token);
+      // console.log('The token is : ', token);
     } catch (error) {
       console.log('Communication Creation failed', error);
     }
@@ -277,22 +277,31 @@ class CommunicationRequest extends Component {
   async readFHIR(resourceType, resourceId) {
     const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
     // if (this.props.config.payer.authorized_fhir) {
-    console.log("read comm req", resourceType, resourceId);
-    fhirClient.bearerToken = this.state.accessToken;
+    // console.log("read comm req", resourceType, resourceId);
+    // fhirClient.bearerToken = this.state.accessToken;
     // }
+    let token = await createToken(this.props.config.payer.grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    if(this.props.config.payer.authorizedPayerFhir){
+      fhirClient.bearerToken = token;
+    }
     let readResponse = await fhirClient.read({ resourceType: resourceType, id: resourceId });
     console.log('Read Rsponse', readResponse)
     return readResponse;
   }
 
-  async getResources(token, resource, identifier) {
+  async getResources( resource, identifier) {
     var url = this.props.config.payer.fhir_url + "/" + resource + "?identifier=" + identifier;
+    let token;
+    let headers = {
+      "Content-Type": "application/json",
+    }
+    token = await createToken(this.props.config.payer.grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'))
+    if(this.props.config.payer.authorizedPayerFhir){
+      headers ['Authorization']= 'Bearer ' + token
+    }
     let sender = await fetch(url, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        'Authorization': 'Bearer ' + token
-      }
+      headers: headers
     }).then(response => {
       return response.json();
     }).then((response) => {
@@ -301,6 +310,7 @@ class CommunicationRequest extends Component {
     }).catch(reason =>
       console.log("No response recieved from the server", reason)
     );
+    console.log(sender,'sender')
     return sender;
   }
 
@@ -344,23 +354,23 @@ class CommunicationRequest extends Component {
     }
     return prefetchData;
   }
-
-  async getResourceData(token, prefectInput) {
-    console.log("Prefetch input--", JSON.stringify(prefectInput));
-    const url = this.props.config.crd.crd_url + "prefetch";
-    await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "authorization": "Bearer " + token,
-      },
-      body: JSON.stringify(prefectInput),
-    }).then((response) => {
-      return response.json();
-    }).then((response) => {
-      this.setState({ prefetchData: response });
-    })
-  }
+  /*not using this method */
+  // async getResourceData(token, prefectInput) {
+  //   console.log("Prefetch input--", JSON.stringify(prefectInput));
+  //   const url = this.props.config.crd.crd_url + "prefetch";
+  //   await fetch(url, {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //       "authorization": "Bearer " + token,
+  //     },
+  //     body: JSON.stringify(prefectInput),
+  //   }).then((response) => {
+  //     return response.json();
+  //   }).then((response) => {
+  //     this.setState({ prefetchData: response });
+  //   })
+  // }
 
   setRequestType(req) {
     this.setState({ request: req });
@@ -505,16 +515,41 @@ class CommunicationRequest extends Component {
     this.setState({ requirementSteps: steps, loadCards: false });
   }
 
-  async createFhirResource(json, resourceName,url) {
+  async createFhirResource(json, resourceName,url,user) {
     //  console.log("this.state.procedure_code")
     // console.log(this.state.procedure_code)
     this.setState({ loading: true });
 
     try {
       const fhirClient = new Client({ baseUrl: url});
-      const token = await createToken(this.props.config.provider.username, this.props.config.provider.password);
+      let token;
+      if(user == 'provider'){
+        console.log('using Provider Client Credentials')
+
+        if(this.props.config.provider.grant_type == 'client_credentials'){
+          token = await createToken(this.props.config.provider.grant_type, user, this.props.config.provider.username, this.props.config.provider.password);
+        }
+        else{
+          token = await createToken(this.props.config.provider.grant_type, user, this.props.config.provider.username, this.props.config.provider.password);
+
+        }
+        if(this.props.config.provider.authorized_fhir){
+          fhirClient.bearerToken = token;
+        }
+      }
+      else if(user == 'payer'){
+        console.log('using payer Client Credentials')
+        if(this.props.config.payer.grant_type == 'client_credentials'){
+          token = await createToken(this.props.config.payer.grant_type, user, sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+        }
+        else{
+          token = await createToken(this.props.config.payer.grant_type, user, sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+        }
+        if(this.props.config.payer.authorizedPayerFhir){
+          fhirClient.bearerToken = token;
+        }
+      }
       console.log('The token is : ', token);
-      fhirClient.bearerToken = token;
       let data = fhirClient.create({
         resourceType: resourceName,
         body: json,
@@ -537,41 +572,42 @@ class CommunicationRequest extends Component {
       this.setState({ dataLoaded: false })
     }
   }
-  async getFhirResource(resourceType, searchParameter) {
-    //  console.log("this.state.procedure_code")
-    // console.log(this.state.procedure_code)
-    // this.setState({ loading: true });
+  /*Not  using this method Anywhere*/
+  // async getFhirResource(resourceType, searchParameter) {
+  //   //  console.log("this.state.procedure_code")
+  //   // console.log(this.state.procedure_code)
+  //   // this.setState({ loading: true });
 
-    try {
-      const fhirClient = new Client({ baseUrl: this.props.config.provider.fhir_url });
-      const token = await createToken(this.props.config.provider.username, this.props.config.provider.password);
-      console.log('The token is : ', token);
-      fhirClient.bearerToken = token;
-      fhirClient.search({ resourceType: resourceType, searchParams: searchParameter  })
-        .then((response) => {
-          console.log(response,'++++');
-          return response;
-        })
-        .catch((error) => {
-          console.error(error);
-        });
-    } catch (error) {
-      console.error( error.message);
-      // this.setState({ dataLoaded: false })
-    }
+  //   try {
+  //     const fhirClient = new Client({ baseUrl: this.props.config.provider.fhir_url });
+  //     const token = await createToken(this.props.config.provider.username, this.props.config.provider.password);
+  //     console.log('The token is : ', token);
+  //     fhirClient.bearerToken = token;
+  //     fhirClient.search({ resourceType: resourceType, searchParams: searchParameter  })
+  //       .then((response) => {
+  //         console.log(response,'++++');
+  //         return response;
+  //       })
+  //       .catch((error) => {
+  //         console.error(error);
+  //       });
+  //   } catch (error) {
+  //     console.error( error.message);
+  //     // this.setState({ dataLoaded: false })
+  //   }
 
-  }
+  // }
 
-  async getRequestID(token) {
+  async getRequestID() {
     const min = 1;
     const max = 1000000000;
     const num = parseInt(min + Math.random() * (max - min));
     console.log("num----------", num);
-    let req_check = await this.getResources(token, "CommunicationRequest", num);
+    let req_check = await this.getResources( "CommunicationRequest", num);
     console.log("random------------", req_check);
     if (req_check.hasOwnProperty('total')) {
       if (req_check.total > 0) {
-        await this.getRequestID(token);
+        await this.getRequestID();
       }
       else {
         return num;
@@ -599,11 +635,11 @@ class CommunicationRequest extends Component {
     try {
       let res_json = {}
       this.setState({ dataLoaded: false, reqId: '' })
-      let token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-      let json_request = await this.getJson();
+      // let token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+      // let json_request = await this.getJson();
       // let accessToken = this.state.accessToken;
-      let accessToken = token;
-      this.setState({ accessToken });
+      // let accessToken = token;
+      // this.setState({ accessToken });
       // let patientResource = await this.readFHIR("Patient", "" + this.state.patientId)
       // let practitionerResource = await this.readFHIR("Practitioner", "" + this.state.practitionerId)
       // let payerResource = await this.readFHIR("Organization", "" + this.state.payerId)
@@ -625,7 +661,7 @@ class CommunicationRequest extends Component {
       // console.log(this.state.timePeriod.end.toISOString(),"++")
       var date = new Date()
       var currentDateTime = date.toISOString()
-      let request_id = await this.getRequestID(token);
+      let request_id = await this.getRequestID();
       // console.log("this.state.timePeriod-----", this.state.timePeriod);
       let req_json = {
         "resourceType": "CommunicationRequest",
@@ -775,10 +811,10 @@ class CommunicationRequest extends Component {
       console.log("Requestqqqq:", req_json)
       console.log(JSON.stringify(req_json))
 
-      let commRequest = await this.createFhirResource(req_json, 'CommunicationRequest',this.props.config.provider.fhir_url )
+      let commRequest = await this.createFhirResource(req_json, 'CommunicationRequest',this.props.config.provider.fhir_url,'provider' )
       console.log(commRequest,'yess')
       req_json.identifier.value = commRequest.identifier.value  
-      let communication = await this.createFhirResource(req_json, 'CommunicationRequest',this.props.config.payer.fhir_url)
+      let communication = await this.createFhirResource(req_json, 'CommunicationRequest',this.props.config.payer.fhir_url,'payer')
       console.log(communication,'yess plese')
       sessionStorage.setItem('patientId', this.state.patientId)
       sessionStorage.setItem('practitionerId', this.state.practitionerId)
