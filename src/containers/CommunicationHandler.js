@@ -266,13 +266,13 @@ class CommunicationHandler extends Component {
 
   async getCommunications() {
     var tempUrl = this.props.config.payer.fhir_url;
-    const token = await createToken(this.props.config.payer.grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    const token = await createToken(this.props.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
     // console.log('The token is : ', token, tempUrl);
     let headers = {
       "Content-Type": "application/json",
     }
-    if(this.props.config.payer.authorizedPayerFhir){
-      headers['Authorization']= 'Bearer ' + token
+    if (this.props.config.payer.authorizedPayerFhir) {
+      headers['Authorization'] = 'Bearer ' + token
     }
     const fhirResponse = await fetch(tempUrl + "/Communication?_count=100000", {
       method: "GET",
@@ -281,7 +281,7 @@ class CommunicationHandler extends Component {
       // console.log("Recieved response", response);
       return response.json();
     }).then((response) => {
-      // console.log("----------response", response);
+      console.log("----------response", response);
       return response;
     }).catch(reason =>
       console.log("No response recieved from the server", reason)
@@ -291,13 +291,13 @@ class CommunicationHandler extends Component {
 
   async getCommunicationReq() {
     var tempUrl = this.props.config.payer.fhir_url;
-    const token = await createToken(this.props.config.payer.grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    const token = await createToken(this.props.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
     // console.log('The token is : ', token, tempUrl);
     let headers = {
       "Content-Type": "application/json",
     }
-    if(this.props.config.payer.authorizedPayerFhir){
-      headers['Authorization']= 'Bearer ' + token
+    if (this.props.config.payer.authorizedPayerFhir) {
+      headers['Authorization'] = 'Bearer ' + token
     }
     const fhirResponse = await fetch(tempUrl + "/CommunicationRequest?_count=100000", {
       method: "GET",
@@ -306,7 +306,7 @@ class CommunicationHandler extends Component {
       // console.log("Recieved response", response);
       return response.json();
     }).then((response) => {
-      // console.log("----------response", response);
+      console.log("----------response", response);
       return response;
     }).catch(reason =>
       console.log("No response recieved from the server", reason)
@@ -316,8 +316,8 @@ class CommunicationHandler extends Component {
 
   async readFHIR(resourceType, resourceId) {
     const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
-    let token = await createToken(this.props.config.payer.grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-    if(this.props.config.payer.authorizedPayerFhir){
+    let token = await createToken(this.props.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    if (this.props.config.payer.authorizedPayerFhir) {
       fhirClient.bearerToken = token;
     }
     let readResponse = await fhirClient.read({ resourceType: resourceType, id: resourceId });
@@ -519,13 +519,13 @@ class CommunicationHandler extends Component {
   async submit_info() {
     this.setState({ loadingSteps: false, stepsErrorString: undefined });
     this.resetSteps();
-    let token = await createToken('password','payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'),true);
+    let token = await createToken('password', 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'), true);
     token = "Bearer " + token;
     let headers = {
       "Content-Type": "application/json",
     }
-    if(this.props.config.payer.authorizedPayerFhir){
-        headers["authorization"]= token
+    if (this.props.config.payer.authorizedPayerFhir) {
+      headers["authorization"] = token
     }
     let json_request = await this.getJson();
     // let accessToken = this.state.accessToken;
@@ -587,83 +587,102 @@ class CommunicationHandler extends Component {
     }
   }
 
-  async getPatientDetails(patient_id, communication_request, communication) {
-    this.setState({ patient_name: "" });
-    this.setState({ gender: "" });
-    this.setState({ ident: "" });
-    this.setState({ birthDate: "" });
-    this.setState({ provider_org: "" });
-    this.setState({ payer_org: "" });
-    this.setState({ contentStrings: [] });
-    // console.log("patient_id---------", patient_id, communication_request);
-    var tempUrl = this.props.config.payer.fhir_url + "/Patient/" + patient_id;
-    var grant_type = this.props.config.payer.grant_type
-    const token = await createToken(grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-    let headers = {
-      "Content-Type": "application/json",
-    }
-    if (this.props.config.provider.authorized_fhir) {
-      headers['Authorization'] = 'Bearer ' + token
-    }
-    let patient = await fetch(tempUrl, {
-      method: "GET",
-      headers: headers
-    }).then(response => {
-      return response.json();
-    }).then((response) => {
-      // console.log("----------response", response);
-      let patient = response;
-      // console.log("patient---", patient);
-      if (patient) {
-        this.setState({ patient: patient });
-        if (patient.hasOwnProperty("name")) {
-          var name = '';
-          if (patient['name'][0].hasOwnProperty('given')) {
-            patient['name'][0]['given'].map((n) => {
-              name += ' ' + n;
-            });
+  async getPatientDetails(communication_request, communication) {
+    let patientId;
+    if (communication_request.hasOwnProperty("subject")) {
+      // let patientId = d['subject']['reference'].replace('#', '');
 
-            // name = patient['name'][0]['given'][0] + " " + patient['name'][0]['family'];
-
-          }
-          if (patient['name'][0].hasOwnProperty('family')) {
-            name = name + " " + patient['name'][0]['family'];
-          }
-          // console.log("name---" + name);
-          this.setState({ patient_name: name })
-        }
-        if (patient.hasOwnProperty("identifier")) {
-          this.setState({ ident: patient['identifier'][0]['value'] });
-        }
-        if (patient.hasOwnProperty("gender")) {
-          this.setState({ gender: patient['gender'] });
-        }
-        if (patient.hasOwnProperty("birthDate")) {
-          this.setState({ birthDate: patient['birthDate'] });
-        }
-        // console.log("patient name----------", this.state.patient_name, this.state.patient.resourceType + "?identifier=" + this.state.patient.identifier[0].value);
+      if (communication_request['subject']['reference'].charAt(0) == '#') {
+        patientId = communication_request['subject']['reference'].replace('#', '')
       }
-    }).catch(reason =>
-      console.log("No response recieved from the server", reason)
-    );
-    if (communication_request.hasOwnProperty('sender')) {
-      let s = await this.getSenderDetails(communication_request, token);
-    }
-    if (communication_request.hasOwnProperty('payload')) {
-      await this.getRequestedDocuments(communication_request['payload']);
-    }
-    // if (communication_request.hasOwnProperty('occurrencePeriod')) {
-    //   // await this.getDocuments(communication_request['payload']);
-    //   this.setState({ startDate: communication_request.occurrencePeriod.start })
-    //   this.setState({ endDate: communication_request.occurrencePeriod.end })
-    // }
-    // if (communication_request.hasOwnProperty('authoredOn')) {
-    //   this.setState({ recievedDate: communication_request.authoredOn })
-    // }
-    // this.setState({ communicationRequest: communication_request });
-    // await this.getObservationDetails();
+      else if (communication_request['subject']['reference'].includes('/')) {
+        let a = communication_request['subject']['reference'].split('/');
+        if (a.length > 0) {
+          patientId = a[a.length - 1];
 
-    this.setState({ form_load: true });
+        }
+        this.setState({ patient_name: "" });
+        this.setState({ gender: "" });
+        this.setState({ ident: "" });
+        this.setState({ birthDate: "" });
+        this.setState({ provider_org: "" });
+        this.setState({ payer_org: "" });
+        this.setState({ contentStrings: [] });
+        // console.log("patient_id---------", patient_id, communication_request);
+        var tempUrl = this.props.config.payer.fhir_url + "/Patient/" + patientId;
+        var grant_type = this.props.config.payer.grant_type
+        const token = await createToken(grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+        let headers = {
+          "Content-Type": "application/json",
+        }
+        // if (this.props.config.provider.authorized_fhir) {
+        headers['Authorization'] = 'Bearer ' + token
+        // }
+        let patient = await fetch(tempUrl, {
+          method: "GET",
+          headers: headers
+        }).then(response => {
+          return response.json();
+        }).then((response) => {
+          // console.log("----------response", response);
+          let patient = response;
+          console.log("patient---", patient);
+          if (patient) {
+            this.setState({ patient: patient });
+            if (patient.hasOwnProperty("name")) {
+              var name = '';
+              if (patient['name'][0].hasOwnProperty('given')) {
+                patient['name'][0]['given'].map((n) => {
+                  name += ' ' + n;
+                });
+
+                // name = patient['name'][0]['given'][0] + " " + patient['name'][0]['family'];
+
+              }
+              if (patient['name'][0].hasOwnProperty('family')) {
+                name = name + " " + patient['name'][0]['family'];
+              }
+              console.log("name---" + name);
+              this.setState({ patient_name: name })
+            }
+            if (patient.hasOwnProperty("identifier")) {
+              console.log("iden---" + patient['identifier'][0]['value']);
+              this.setState({ ident: patient['identifier'][0]['value'] });
+            }
+            if (patient.hasOwnProperty("gender")) {
+              console.log("gender---" + patient['gender']);
+              this.setState({ gender: patient['gender'] });
+            }
+            if (patient.hasOwnProperty("birthDate")) {
+              console.log("birthdate---" + patient['birthDate']);
+              this.setState({ birthDate: patient['birthDate'] });
+            }
+            // console.log("patient name----------", this.state.patient_name, this.state.patient.resourceType + "?identifier=" + this.state.patient.identifier[0].value);
+          }
+        }).catch(reason =>
+          console.log("No response recieved from the server", reason)
+        );
+        // console.log("state----------", this.state);
+        if (communication_request.hasOwnProperty('sender')) {
+          let s = await this.getSenderDetails(communication_request, token);
+        }
+        if (communication_request.hasOwnProperty('payload')) {
+          await this.getRequestedDocuments(communication_request['payload']);
+        }
+        // if (communication_request.hasOwnProperty('occurrencePeriod')) {
+        //   // await this.getDocuments(communication_request['payload']);
+        //   this.setState({ startDate: communication_request.occurrencePeriod.start })
+        //   this.setState({ endDate: communication_request.occurrencePeriod.end })
+        // }
+        // if (communication_request.hasOwnProperty('authoredOn')) {
+        //   this.setState({ recievedDate: communication_request.authoredOn })
+        // }
+        // this.setState({ communicationRequest: communication_request });
+        // await this.getObservationDetails();
+
+        this.setState({ form_load: true });
+      }
+    }
   }
 
   async getRequestedDocuments(payload) {
@@ -763,7 +782,7 @@ class CommunicationHandler extends Component {
   }
 
   async getJson() {
-    let token = await createToken('password','payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'),true)
+    let token = await createToken('password', 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'), true)
     var patientId = null;
     patientId = this.state.patientId;
     let coverage = {
@@ -877,95 +896,7 @@ class CommunicationHandler extends Component {
   render() {
     let data = this.state.withCommunication;
     // console.log(this.state.withCommunication, this.state.withoutCommunication)
-
-    let content = data.map((d, i) => {
-      // console.log(d, i);
-      let creceivedDate;
-      if (d['communication'].hasOwnProperty('received')) {
-        creceivedDate = d['communication']["received"]
-      }
-      // console.log(startDate.substring(0, 10), 'stdate')
-      if (d['communication_request'].hasOwnProperty("subject")) {
-        // console.log("-------------------");
-        // let patientId = d['communication_request']['subject']['reference'].replace('#','');
-        let patientId;
-        if (d['communication_request']['subject']['reference'].charAt(0) == '#') {
-          patientId = d['communication_request']['subject']['reference'].replace('#', '')
-        }
-        else if (d['communication_request']['subject']['reference'].includes('/')) {
-          let a = d['communication_request']['subject']['reference'].split('/')
-          if (a.length > 0) {
-            patientId = a[a.length - 1];
-
-          }
-        }
-        // console.log("patientId------",patientId,d['communication_request']['subject']);
-        return (
-          <div key={i}>
-            {i + 1}.  <strong>{d['communication']['resourceType']} (#{d['communication']['id']})</strong> for <strong>{patientId}</strong>  in response to <strong>{d['communication_request']['resourceType']} (#{d['communication_request']['id']})</strong>
-            {creceivedDate &&
-              <span>received on <strong>{creceivedDate.substring(0, 10)}</strong></span>}
-            <button className="btn list-btn" onClick={() => this.getPatientDetails(patientId, d['communication_request'], d['communication'])}>
-              Review
-              </button>
-          </div>
-        )
-      }
-    });
-
     let requests = this.state.withoutCommunication;
-    let req = requests.map((d, i) => {
-      // console.log(d, i);
-      let endDate;
-      let startDate;
-      let recievedDate;
-      if (d.hasOwnProperty('occurrencePeriod')) {
-        startDate = d["occurrencePeriod"]['start']
-
-        if (d['occurrencePeriod'].hasOwnProperty("end")) {
-          endDate = d["occurrencePeriod"]['end']
-        }
-        else {
-          endDate = "No End Date"
-        }
-      }
-      if (d.hasOwnProperty('authoredOn')) {
-        recievedDate = d["authoredOn"]
-      }
-
-      // console.log(startDate.substring(0, 10), 'stdate')
-      if (d.hasOwnProperty("subject")) {
-        // let patientId = d['subject']['reference'].replace('#', '');
-        let patientId;
-        if (d['subject']['reference'].charAt(0) == '#') {
-          patientId = d['subject']['reference'].replace('#', '')
-        }
-        else if (d['subject']['reference'].includes('/')) {
-          let a = d['subject']['reference'].split('/');
-          if (a.length > 0) {
-            patientId = a[a.length - 1];
-
-          }
-        }
-        // console.log("patientId------",patientId,d['subject']);
-        return (
-          <div key={i}>
-            {i + 1}. <strong>{d['resourceType']} (#{d['id']})</strong> for <strong>{patientId}</strong> .
-            {recievedDate &&
-              <span>
-                Started on <strong>({recievedDate.substring(0, 10)})</strong> .</span>}
-            {endDate &&
-              <div>Communication expected before <strong>({endDate.substring(0, 10)})</strong>
-                </div>}
-            <button className="btn list-btn" onClick={() => this.getPatientDetails(patientId, d, "")}>
-              Review
-              </button>
-          </div>
-
-        )
-      }
-
-    });
     let docs = this.state.contentStrings.map((request, key) => {
       if (request) {
         return (
@@ -977,6 +908,56 @@ class CommunicationHandler extends Component {
       }
     });
     return (
+//       let creceivedDate;
+//       if (d['communication'].hasOwnProperty('received')) {
+//         creceivedDate = d['communication']["received"]
+//       }
+//       // console.log(startDate.substring(0, 10), 'stdate')
+//       if (d['communication_request'].hasOwnProperty("subject")) {
+//         // console.log("-------------------");
+//         // let patientId = d['communication_request']['subject']['reference'].replace('#','');
+//         let patientId;
+//         if (d['communication_request']['subject']['reference'].charAt(0) == '#') {
+//           patientId = d['communication_request']['subject']['reference'].replace('#', '')
+//         }
+//         else if (d['communication_request']['subject']['reference'].includes('/')) {
+//           let a = d['communication_request']['subject']['reference'].split('/')
+//           if (a.length > 0) {
+//             patientId = a[a.length - 1];
+
+//           }
+// }
+// let endDate;
+//       let startDate;
+//       let recievedDate;
+//       if (d.hasOwnProperty('occurrencePeriod')) {
+//         startDate = d["occurrencePeriod"]['start']
+
+//         if (d['occurrencePeriod'].hasOwnProperty("end")) {
+//           endDate = d["occurrencePeriod"]['end']
+//         }
+//         else {
+//           endDate = "No End Date"
+//         }
+//       }
+//       if (d.hasOwnProperty('authoredOn')) {
+//         recievedDate = d["authoredOn"]
+//       }
+
+//       // console.log(startDate.substring(0, 10), 'stdate')
+//       if (d.hasOwnProperty("subject")) {
+//         // let patientId = d['subject']['reference'].replace('#', '');
+//         let patientId;
+//         if (d['subject']['reference'].charAt(0) == '#') {
+//           patientId = d['subject']['reference'].replace('#', '')
+//         }
+//         else if (d['subject']['reference'].includes('/')) {
+//           let a = d['subject']['reference'].split('/');
+//           if (a.length > 0) {
+//             patientId = a[a.length - 1];
+
+//           }
+// }
       <React.Fragment>
         <div>
           <div className="main_heading">
@@ -1004,13 +985,75 @@ class CommunicationHandler extends Component {
             <div className="content">
               <div className="left-form">
                 <div><h2>Communications Received</h2></div>
-                <div>{content}</div>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Communication Request ID</th>
+                      <th>Communication Request Identifier</th>
+                      <th>Communication ID</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {
+                      data.map((d, i) => (
+                        <tr key={i}>
+                          <td>
+                            <span>{d['communication_request']['id']}</span>
+                          </td>
+                          <td>
+                            {d['communication_request']['identifier'] != undefined &&
+                              <span>{d['communication_request']['identifier'][0]['value']}</span>
+                            }
+                          </td>
+                          <td>
+                            <span>{d['communication']['id']}</span>
+                          </td>
+                          <td>
+                            <button className="btn list-btn" onClick={() => this.getPatientDetails(d['communication_request'], d['communication'])}>
+                              Review
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    }
+                  </tbody>
+                </table>
                 <div></div>
                 <div><h2>Communications Not Received</h2></div>
-                <div>{req}</div>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Communication Request ID</th>
+                      <th>Communication Request Identifier</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {
+                      requests.map((d, i) => (
+                        <tr key={i}>
+                          <td>
+                            <span>{d['id']}</span>
+                          </td>
+                          <td>
+                            {d['identifier'] != undefined &&
+                              <span>{d['identifier'][0]['value']}</span>
+                            }
+                          </td>
+                          <td>
+                            <button className="btn list-btn" onClick={() => this.getPatientDetails(d, '')}>
+                              Review
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    }
+                  </tbody>
+                </table>
               </div>
               {this.state.form_load &&
-                <div className="right-form" style={{ paddingTop: "1%" }} >
+                <div className="right-form" style={{ paddingTop: "2%" }} >
                   {this.state.patient_name &&
                     <div className="data-label">
                       Patient : <span className="data1"><strong>{this.state.patient_name}</strong></span>
@@ -1035,7 +1078,7 @@ class CommunicationHandler extends Component {
                     <div className="data-label">
                       Provider Organization : <span className="data1"><strong>{this.state.provider_org}</strong></span>
                     </div>}
-                  {this.state.contentStrings.length>0 &&
+                  {this.state.contentStrings.length > 0 &&
                     <div className="data-label">
                       Requests Sent : <span className="data1"><strong>{docs}</strong></span>
                     </div>}
@@ -1050,6 +1093,7 @@ class CommunicationHandler extends Component {
     )
   }
 }
+
 
 
 function mapStateToProps(state) {

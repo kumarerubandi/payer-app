@@ -529,12 +529,17 @@ class CommunicationRequest extends Component {
     this.setState({ requirementSteps: steps, loadCards: false });
   }
 
-  async createFhirResource(json, resourceName, url, user) {
+  async createFhirResource(json, resourceName, url, user, claim = false) {
     //  console.log("this.state.procedure_code")
     // console.log(this.state.procedure_code)
     this.setState({ loading: true });
 
     try {
+      if (claim == true) {
+        json.about = [{
+          "reference": "Claim?identifier=" + this.state.claimid
+        }];
+      }
       const fhirClient = new Client({ baseUrl: url });
       let token;
       if (user == 'provider') {
@@ -563,7 +568,7 @@ class CommunicationRequest extends Component {
           fhirClient.bearerToken = token;
         }
       }
-      // console.log('The token is : ', token);
+      console.log('The json is : ', json);
       let data = fhirClient.create({
         resourceType: resourceName,
         body: json,
@@ -677,7 +682,7 @@ class CommunicationRequest extends Component {
       var currentDateTime = date.toISOString()
       let request_id = await this.getRequestID();
       // console.log("this.state.timePeriod-----", this.state.timePeriod);
-      let req_json = {
+      let provider_req_json = {
         "resourceType": "CommunicationRequest",
         "identifier": [
           {
@@ -740,12 +745,15 @@ class CommunicationRequest extends Component {
           }
         ],
         "subject": {
-          "reference": "Patient?identifier=" + this.state.patientId
+          "reference": "Patient/" + this.state.patientId
         },
         "requester": {
           // "reference": "Organization?identifier=" + this.state.payerId
           "reference": "#" + this.state.payerId
         },
+        // 'about': [{
+        //   "reference": "Claim?identifier=" + this.state.claimid
+        // }],
         "status": "active",
         "recipient": [
           {
@@ -755,11 +763,6 @@ class CommunicationRequest extends Component {
         "sender": {
           "reference": "#" + this.state.payerId
         },
-        "about": [
-          {
-            "reference": "Claim?identifier="+this.state.claimid
-          }
-        ],
         "occurrencePeriod": {
           "start": this.state.occurenceStartDate,
           "end": this.state.occurenceEndDate
@@ -767,8 +770,7 @@ class CommunicationRequest extends Component {
         "authoredOn": currentDateTime
       }
 
-      req_json.payload = [];
-      console.log("final----------------", req_json);
+      provider_req_json.payload = [];
       // console.log("this.state.docType", this.state.docType);
       if (this.state.isDocument) {
         let documents = this.state.documents;
@@ -783,7 +785,7 @@ class CommunicationRequest extends Component {
         // console.log(timePeriod,'uoo')
         for (var i = 0; i < documents.length; i++) {
           var fields = documents[i].split('|')
-          req_json.payload.push({
+          provider_req_json.payload.push({
             'extension': [{
               'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
               'valueCodeableConcept': {
@@ -830,7 +832,7 @@ class CommunicationRequest extends Component {
         for (var i = 0; i < vitalSigns.length; i++) {
           // console.log('in this looop')
           var fields = vitalSigns[i].split("|")
-          req_json.payload.push({
+          provider_req_json.payload.push({
             'extension': [{
               'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
               'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
@@ -857,58 +859,72 @@ class CommunicationRequest extends Component {
 
       // console.log("Requestqqqq:", req_json)
       // console.log(JSON.stringify(req_json))
+      // console.log("provider----------------", provider_req_json);
+      let commRequest = await this.createFhirResource(
+        provider_req_json, 'CommunicationRequest', this.props.config.provider.fhir_url, 'provider'
+      );
+      provider_req_json.identifier.value = commRequest.identifier.value;
+      // let commRequest = await this.createFhirResource(
+      //   provider_req_json, 'CommunicationRequest', this.props.config.provider.fhir_url, 'provider'
+      // ).then(async () => {
+      //   // let payer_req_json = provider_req_json;
+      //   // payer_req_json.about = [{
+      //   //   "reference": "Claim?identifier=" + this.state.claimid
+      //   // }];
+      //   // payer_req_json.identifier.value = commRequest.identifier.value;
+      // console.log("payer----------------", provider_req_json);
+      let communication = await this.createFhirResource(provider_req_json, 'CommunicationRequest', this.props.config.payer.fhir_url, 'payer', true)
 
-      let commRequest = await this.createFhirResource(req_json, 'CommunicationRequest', this.props.config.provider.fhir_url, 'provider')
       // console.log(commRequest, 'yess')
-      req_json.identifier.value = commRequest.identifier.value
-      let communication = await this.createFhirResource(req_json, 'CommunicationRequest', this.props.config.payer.fhir_url, 'payer')
       // console.log(communication, 'yess plese')
-      sessionStorage.setItem('patientId', this.state.patientId)
-      sessionStorage.setItem('practitionerId', this.state.practitionerId)
-      sessionStorage.setItem('payerId', this.state.payerId)
-      // this.setState({ response: res_json });
+    sessionStorage.setItem('patientId', this.state.patientId)
+    sessionStorage.setItem('practitionerId', this.state.practitionerId)
+    sessionStorage.setItem('payerId', this.state.payerId)
+    // this.setState({ response: res_json });
 
-    }
-    catch (error) {
-      console.log(error)
-      this.setState({ response: error });
-      this.setState({ loading: false });
-      if (error instanceof TypeError) {
-        this.consoleLog(error.name + ": " + error.message);
-      }
-      this.setState({ dataLoaded: false })
-    }
   }
-  renderForm() {
-    let local = {
-      "format": "DD-MM-YYYY HH:mm",
-      "sundayFirst": false
+  catch(error) {
+    console.log(error)
+    this.setState({ response: error });
+    this.setState({ loading: false });
+    if (error instanceof TypeError) {
+      this.consoleLog(error.name + ": " + error.message);
     }
-    return (
-      <React.Fragment>
-        <div>
-          <div className="main_heading">
-            <span style={{ lineHeight: "35px" }}>Payer App - Communication Request </span>
-            <div className="menu">
-              <button className="menubtn"><i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-user-circle" aria-hidden="true"></i>
-                {sessionStorage.getItem('username')}<i style={{ paddingLeft: "7px", paddingRight: "3px" }} className="fa fa-caret-down"></i>
-              </button>
-              <div className="menu-content">
-                <button className="logout-btn" onClick={this.onClickLogout}>
-                  <i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-sign-out" aria-hidden="true"></i>Logout</button>
-              </div>
-            </div>
-            <div className="menu_conf" onClick={() => this.redirectTo('communications')}>
-              <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-comments"></i>
-              Communication List</div>
-            <div className="menu_conf" onClick={() => this.setRequestType('config-view')}>
-              <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-cog"></i>
-              Configuration
+    this.setState({ dataLoaded: false })
+  }
+}
+
+
+renderForm() {
+  let local = {
+    "format": "DD-MM-YYYY HH:mm",
+    "sundayFirst": false
+  }
+  return (
+    <React.Fragment>
+      <div>
+        <div className="main_heading">
+          <span style={{ lineHeight: "35px" }}>Payer App - Communication Request </span>
+          <div className="menu">
+            <button className="menubtn"><i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-user-circle" aria-hidden="true"></i>
+              {sessionStorage.getItem('username')}<i style={{ paddingLeft: "7px", paddingRight: "3px" }} className="fa fa-caret-down"></i>
+            </button>
+            <div className="menu-content">
+              <button className="logout-btn" onClick={this.onClickLogout}>
+                <i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-sign-out" aria-hidden="true"></i>Logout</button>
             </div>
           </div>
-          <div className="content">
-            <div className="left-form">
-              {/* <div>
+          <div className="menu_conf" onClick={() => this.redirectTo('communications')}>
+            <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-comments"></i>
+            Communication List</div>
+          <div className="menu_conf" onClick={() => this.setRequestType('config-view')}>
+            <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-cog"></i>
+            Configuration
+            </div>
+        </div>
+        <div className="content">
+          <div className="left-form">
+            {/* <div>
                 <div className="header">
                   Payer Identifier*
                       </div>
@@ -921,80 +937,80 @@ class CommunicationRequest extends Component {
                 }
 
               </div> */}
-              <div>
-                <div className="header">
-                  Practitioner NPI*
+            <div>
+              <div className="header">
+                Practitioner NPI*
                       </div>
-                <div className="dropdown">
-                  <Input className='ui fluid   input' type="text" name="practitionerId" fluid value={this.state.practitionerId} onChange={this.onPractitionerChange}></Input>
+              <div className="dropdown">
+                <Input className='ui fluid   input' type="text" name="practitionerId" fluid value={this.state.practitionerId} onChange={this.onPractitionerChange}></Input>
 
-                </div>
-                {this.state.validatePractitioner === true &&
-                  <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
-                }
               </div>
-              <div>
-                <div className="header">
-                  Beneficiary Identifier*
+              {this.state.validatePractitioner === true &&
+                <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
+              }
+            </div>
+            <div>
+              <div className="header">
+                Beneficiary Identifier*
                     </div>
-                <div className="dropdown">
-                  <Input className='ui fluid   input' type="text" name="patient" fluid value={this.state.patientId} onChange={this.onPatientChange}></Input>
-                </div>
-                {this.state.validatePatient === true &&
-                  <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
-                }
+              <div className="dropdown">
+                <Input className='ui fluid   input' type="text" name="patient" fluid value={this.state.patientId} onChange={this.onPatientChange}></Input>
               </div>
-              <div>
-                <div className="header">
-                  Purpose
+              {this.state.validatePatient === true &&
+                <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
+              }
+            </div>
+            <div>
+              <div className="header">
+                Purpose
                   </div>
-                <div className="dropdown">
-                  <DropdownPurpose elementName="purpose" updateCB={this.updateStateElement} />
-                  {/* <Select options={this.typeOfDocuments} onChange={this.updateDocumentType} value={this.typeOfDocuments.label} /> */}
-                </div>
-
+              <div className="dropdown">
+                <DropdownPurpose elementName="purpose" updateCB={this.updateStateElement} />
+                {/* <Select options={this.typeOfDocuments} onChange={this.updateDocumentType} value={this.typeOfDocuments.label} /> */}
               </div>
-              <div>
-                <div className="header">
-                  Select Claim ID
+
+            </div>
+            <div>
+              <div className="header">
+                Select Claim ID
                   </div>
-                <div className="dropdown">
-                  <DropdownClaim elementName="claimid" updateCB={this.updateClaimID} />
-                  {/* <Select options={this.typeOfDocuments} onChange={this.updateDocumentType} value={this.typeOfDocuments.label} /> */}
-                </div>
-
+              <div className="dropdown">
+                <DropdownClaim elementName="claimid" updateCB={this.updateClaimID} />
+                {/* <Select options={this.typeOfDocuments} onChange={this.updateDocumentType} value={this.typeOfDocuments.label} /> */}
               </div>
-              <div>
-                <div><span className="header">Select Payload type</span>
-                  <input type="radio" checked={this.state.isDocument === true} onChange={this.updateDoc} /> Clinical Note
+
+            </div>
+            <div>
+              <div><span className="header">Select Payload type</span>
+                <input type="radio" checked={this.state.isDocument === true} onChange={this.updateDoc} /> Clinical Note
                 <input type="radio" checked={this.state.isDocument === false} onChange={this.updateDataElement} />Data Elements
                 </div>
-              </div>
-              {this.state.isDocument &&
-                <div>
-                  <div className="header">
-                    Clinical Note
+            </div>
+            {this.state.isDocument &&
+              <div>
+                <div className="header">
+                  Clinical Note
                   </div>
-                  <div className="dropdown">
-                    <DropdownDocument elementName="documents" updateCB={this.updateStateElement} />
-                    {/* <Select options={this.typeOfDocuments} onChange={this.updateDocumentType} value={this.typeOfDocuments.label} /> */}
-                  </div>
+                <div className="dropdown">
+                  <DropdownDocument elementName="documents" updateCB={this.updateStateElement} />
+                  {/* <Select options={this.typeOfDocuments} onChange={this.updateDocumentType} value={this.typeOfDocuments.label} /> */}
+                </div>
 
-                </div>}
-              {this.state.isDocument === false &&
-                <div>
-                  <div className="header">
-                    Requesting for
+              </div>}
+            {this.state.isDocument === false &&
+              <div>
+                <div className="header">
+                  Requesting for
                   </div>
-                  <div className="dropdown">
-                    {/* <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
+                <div className="dropdown">
+                  {/* <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
                     <span>( NOTE: Use ',' to separate multiple values.For Example: "Red,Green,Blue" )
                     </span> */}
-                    <DropdownVitalSigns elementName="vitalSigns" updateCB={this.updateStateElement} />
+                  <DropdownVitalSigns elementName="vitalSigns" updateCB={this.updateStateElement} />
 
-                  </div>
+                </div>
 
-                  {/* <div className="dropdown">
+                {/* <div className="dropdown">
                   <Select options={this.typeOfVitalSigns} 
                     isMulti
                     name="vitalsigns"
@@ -1004,39 +1020,39 @@ class CommunicationRequest extends Component {
                     value={this.typeOfVitalSigns.label} />
                   </div> */}
 
-                </div>}
+              </div>}
+            <div>
+
               <div>
-
-                <div>
-                  <div className="header">
-                    Occurence Time period
+                <div className="header">
+                  Occurence Time period
                   </div>
-                  <div className="dropdown">
-
-                    <DatetimeRangePicker onChange={this.updatetimePeriod} startDate={this.state.occurenceStartDate} endDate={this.state.occurenceEndDate} />
-                    {/* <DatetimeRangePicker onChange={this.updatetimePeriod} startDate />  */}
-
-                  </div>
-
-                </div>
-                {this.state.isDocument &&
-                  <div className="header">
-                    Clinical Note Time period
-                  </div>
-                }
-                {this.state.isDocument == false &&
-                  <div className="header">
-                    Observation Time period
-                </div>
-                }
                 <div className="dropdown">
-                  <DatetimeRangePicker onChange={this.updatePayloadtimePeriod} startDate={this.state.payloadStartDate} endDate={this.state.payloadEndDate} />
+
+                  <DatetimeRangePicker onChange={this.updatetimePeriod} startDate={this.state.occurenceStartDate} endDate={this.state.occurenceEndDate} />
+                  {/* <DatetimeRangePicker onChange={this.updatetimePeriod} startDate />  */}
+
                 </div>
 
               </div>
+              {this.state.isDocument &&
+                <div className="header">
+                  Clinical Note Time period
+                  </div>
+              }
+              {this.state.isDocument == false &&
+                <div className="header">
+                  Observation Time period
+                </div>
+              }
+              <div className="dropdown">
+                <DatetimeRangePicker onChange={this.updatePayloadtimePeriod} startDate={this.state.payloadStartDate} endDate={this.state.payloadEndDate} />
+              </div>
+
+            </div>
 
 
-              {/*
+            {/*
                 <div>
                   <div className="header">
                     Documents
@@ -1049,147 +1065,147 @@ class CommunicationRequest extends Component {
                   </div>
                 </div>
                 */}
-              <div className="dropdown">
-                <button className="submit-btn btn btn-class button-ready" onClick={this.startLoading}>Submit
+            <div className="dropdown">
+              <button className="submit-btn btn btn-class button-ready" onClick={this.startLoading}>Submit
                       <div id="fse" className={"spinner " + (this.state.loading ? "visible" : "invisible")}>
-                    <Loader
-                      type="Oval"
-                      color="#fff"
-                      height="15"
-                      width="15"
-                    />
-                  </div>
-                </button>
-              </div>
+                  <Loader
+                    type="Oval"
+                    color="#fff"
+                    height="15"
+                    width="15"
+                  />
+                </div>
+              </button>
             </div>
           </div>
-          <div className="right-form" style={{ marginTop: "50px" }}>
-            {this.state.dataLoaded &&
-              <div style={{ textAlign: "center", paddingTop: "5%" }}>
-                <p style={{ color: "green" }}>{"CommunicationRequest has been created successfully with id : " + this.state.reqId + "."}</p>
-              </div>
-            }
-          </div>
         </div>
-      </React.Fragment>);
-  };
+        <div className="right-form" style={{ marginTop: "50px" }}>
+          {this.state.dataLoaded &&
+            <div style={{ textAlign: "center", paddingTop: "5%" }}>
+              <p style={{ color: "green" }}>{"CommunicationRequest has been created successfully with id : " + this.state.reqId + "."}</p>
+            </div>
+          }
+        </div>
+      </div>
+    </React.Fragment>);
+};
 
-  async getJson() {
-    var patientId = null;
-    patientId = this.state.patientId;
-    let coverage = {
-      resource: {
-        resourceType: "Coverage",
-        id: this.state.coverageId,
-        class: [
-          {
-            type: {
-              system: "http://hl7.org/fhir/coverage-class",
-              code: "plan"
-            },
-            value: "Medicare Part D"
-          }
-        ],
-        payor: [
-          {
-            reference: "Organization/6"
-          }
-        ]
-      }
-    };
-    let medicationJson = {
-      resourceType: "MedicationOrder",
-      dosageInstruction: [
+async getJson() {
+  var patientId = null;
+  patientId = this.state.patientId;
+  let coverage = {
+    resource: {
+      resourceType: "Coverage",
+      id: this.state.coverageId,
+      class: [
         {
-          doseQuantity: {
-            value: this.state.dosageAmount,
-            system: "http://unitsofmeasure.org",
-            code: "{pill}"
+          type: {
+            system: "http://hl7.org/fhir/coverage-class",
+            code: "plan"
           },
-          timing: {
-            repeat: {
-              frequency: this.state.frequency,
-              boundsPeriod: {
-                start: this.state.medicationStartDate,
-                end: this.state.medicationEndDate,
-              }
-            }
-          }
+          value: "Medicare Part D"
         }
       ],
-      medicationCodeableConcept: {
-        text: "Pimozide 2 MG Oral Tablet [Orap]",
-        coding: [
-          {
-            display: "Pimozide 2 MG Oral Tablet [Orap]",
-            system: "http://www.nlm.nih.gov/research/umls/rxnorm",
-            code: this.state.medication,
-          }
-        ]
-      },
-      reasonCodeableConcept: {
-        coding: [
-          {
-            system: "http://snomed.info/sct",
-            code: this.state.treating,
-          }
-        ],
-        text: "Alzheimer's disease"
-      }
-
-    };
-    let request = {
-      hookInstance: "d1577c69-dfbe-44ad-ba6d-3e05e953b2ea",
-      fhirServer: this.state.fhirUrl,
-      hook: this.state.hook,
-      payerName: this.state.payer,
-      service_code: this.state.service_code,
-      fhirAuthorization: {
-        "access_token": this.state.accessToken,
-        "token_type": this.props.config.authorization_service.token_type, // json
-        "expires_in": this.props.config.authorization_service.expires_in, // json
-        "scope": this.props.config.authorization_service.scope,
-        "subject": this.props.config.authorization_service.subject,
-      },
-      userId: this.state.practitionerId,
-      patientId: patientId,
-      context: {
-        userId: this.state.practitionerId,
-        patientId: patientId,
-        coverageId: this.state.coverageId,
-        encounterId: this.state.encounterId,
-        orders: {
-          resourceType: "Bundle",
-          entry: [{
-            resource: {
-              resourceType: "Patient",
-              id: patientId,
+      payor: [
+        {
+          reference: "Organization/6"
+        }
+      ]
+    }
+  };
+  let medicationJson = {
+    resourceType: "MedicationOrder",
+    dosageInstruction: [
+      {
+        doseQuantity: {
+          value: this.state.dosageAmount,
+          system: "http://unitsofmeasure.org",
+          code: "{pill}"
+        },
+        timing: {
+          repeat: {
+            frequency: this.state.frequency,
+            boundsPeriod: {
+              start: this.state.medicationStartDate,
+              end: this.state.medicationEndDate,
             }
           }
-          ]
         }
       }
-    };
-    if (this.state.hook === 'order-review') {
-      request.context.encounterId = this.state.encounterId
-      request.context.orders.entry.push(coverage);
+    ],
+    medicationCodeableConcept: {
+      text: "Pimozide 2 MG Oral Tablet [Orap]",
+      coding: [
+        {
+          display: "Pimozide 2 MG Oral Tablet [Orap]",
+          system: "http://www.nlm.nih.gov/research/umls/rxnorm",
+          code: this.state.medication,
+        }
+      ]
+    },
+    reasonCodeableConcept: {
+      coding: [
+        {
+          system: "http://snomed.info/sct",
+          code: this.state.treating,
+        }
+      ],
+      text: "Alzheimer's disease"
     }
-    if (this.state.hook === 'medication-prescribe') {
-      request.context.orders.entry.push(medicationJson);
+
+  };
+  let request = {
+    hookInstance: "d1577c69-dfbe-44ad-ba6d-3e05e953b2ea",
+    fhirServer: this.state.fhirUrl,
+    hook: this.state.hook,
+    payerName: this.state.payer,
+    service_code: this.state.service_code,
+    fhirAuthorization: {
+      "access_token": this.state.accessToken,
+      "token_type": this.props.config.authorization_service.token_type, // json
+      "expires_in": this.props.config.authorization_service.expires_in, // json
+      "scope": this.props.config.authorization_service.scope,
+      "subject": this.props.config.authorization_service.subject,
+    },
+    userId: this.state.practitionerId,
+    patientId: patientId,
+    context: {
+      userId: this.state.practitionerId,
+      patientId: patientId,
+      coverageId: this.state.coverageId,
+      encounterId: this.state.encounterId,
+      orders: {
+        resourceType: "Bundle",
+        entry: [{
+          resource: {
+            resourceType: "Patient",
+            id: patientId,
+          }
+        }
+        ]
+      }
     }
-    if (this.state.prefetch) {
-      var prefetchData = await this.getPrefetchData()
-      this.setState({ prefetchData: prefetchData })
-      request.prefetch = this.state.prefetchData;
-    }
-    return request;
+  };
+  if (this.state.hook === 'order-review') {
+    request.context.encounterId = this.state.encounterId
+    request.context.orders.entry.push(coverage);
   }
-  render() {
-    return (
-      <div className="attributes mdl-grid">
-        {this.renderForm()}
-      </div>)
+  if (this.state.hook === 'medication-prescribe') {
+    request.context.orders.entry.push(medicationJson);
   }
+  if (this.state.prefetch) {
+    var prefetchData = await this.getPrefetchData()
+    this.setState({ prefetchData: prefetchData })
+    request.prefetch = this.state.prefetchData;
+  }
+  return request;
+}
+render() {
+  return (
+    <div className="attributes mdl-grid">
+      {this.renderForm()}
+    </div>)
+}
 }
 
 

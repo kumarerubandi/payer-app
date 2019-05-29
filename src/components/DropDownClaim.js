@@ -59,7 +59,7 @@ export default class DropdownClaim extends Component {
         }).then(response => {
             return response.json();
         }).then((response) => {
-            console.log("----------response", response);
+            // console.log("----------response", response);
             return response;
         }).catch(reason =>
             console.log("No response recieved from the server", reason)
@@ -69,13 +69,13 @@ export default class DropdownClaim extends Component {
     }
 
     handleChange = (e, { value }) => {
-        console.log(this.props, value);
+        // console.log(this.props, value);
         this.props.updateCB(this.props.elementName, value)
         this.setState({ currentValue: value })
     }
 
     render() {
-        console.log("this.state", this.state);
+        // console.log("this.state", this.state);
         const { currentValue } = this.state;
         if (currentValue) {
             blackBorder = "blackBorder";
