@@ -595,7 +595,7 @@ class CommunicationHandler extends Component {
     this.setState({ provider_org: "" });
     this.setState({ payer_org: "" });
     this.setState({ contentStrings: [] });
-    console.log("patient_id---------", patient_id, communication_request);
+    // console.log("patient_id---------", patient_id, communication_request);
     var tempUrl = this.props.config.payer.fhir_url + "/Patient/" + patient_id;
     var grant_type = this.props.config.payer.grant_type
     const token = await createToken(grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'));
@@ -613,7 +613,7 @@ class CommunicationHandler extends Component {
     }).then((response) => {
       // console.log("----------response", response);
       let patient = response;
-      console.log("patient---", patient);
+      // console.log("patient---", patient);
       if (patient) {
         this.setState({ patient: patient });
         if (patient.hasOwnProperty("name")) {
@@ -629,7 +629,7 @@ class CommunicationHandler extends Component {
           if (patient['name'][0].hasOwnProperty('family')) {
             name = name + " " + patient['name'][0]['family'];
           }
-          console.log("name---" + name);
+          // console.log("name---" + name);
           this.setState({ patient_name: name })
         }
         if (patient.hasOwnProperty("identifier")) {
@@ -641,7 +641,7 @@ class CommunicationHandler extends Component {
         if (patient.hasOwnProperty("birthDate")) {
           this.setState({ birthDate: patient['birthDate'] });
         }
-        console.log("patient name----------", this.state.patient_name, this.state.patient.resourceType + "?identifier=" + this.state.patient.identifier[0].value);
+        // console.log("patient name----------", this.state.patient_name, this.state.patient.resourceType + "?identifier=" + this.state.patient.identifier[0].value);
       }
     }).catch(reason =>
       console.log("No response recieved from the server", reason)

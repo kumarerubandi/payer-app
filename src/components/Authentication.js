@@ -1,7 +1,6 @@
 //import KJUR, {KEYUTIL} from 'jsrsasign';
 import config from '../globalConfiguration.json';
 
-
 export async function createToken(grant_type,user,username,password,login=false){
     const types = {
     error: "errorClass",

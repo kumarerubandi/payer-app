@@ -23,14 +23,16 @@ import { KEYUTIL } from 'jsrsasign';
 import { createToken } from '../components/Authentication';
 import { connect } from 'react-redux';
 import DatetimeRangePicker from 'react-datetime-range-picker';
-import moment from "moment"
+import moment from "moment";
+import DropdownPurpose from '../components/DropdownPurpose';
+import DropdownClaim from '../components/DropDownClaim';
 
 let now = new Date();
-let occurenceStartDate = moment(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11,0,0,0)).toISOString();
+let occurenceStartDate = moment(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 0, 0, 0)).toISOString();
 let occurenceEndDate = moment(occurenceStartDate).add(8, "days").subtract(1, "seconds").toISOString();
-let yesterday =  moment(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11,0,0,0));
-let payloadStartDate = moment(yesterday).subtract(8,"days").toISOString();
-let payloadEndDate = moment(payloadStartDate).add(8,"days").subtract(1,"seconds").toISOString();
+let yesterday = moment(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 0, 0, 0));
+let payloadStartDate = moment(yesterday).subtract(8, "days").toISOString();
+let payloadEndDate = moment(payloadStartDate).add(8, "days").subtract(1, "seconds").toISOString();
 
 
 const types = {
@@ -91,15 +93,15 @@ class CommunicationRequest extends Component {
       communicationList: [],
       documents: [],
       reqId: '',
-      vitalSigns:[],
+      vitalSigns: [],
       reasons: '',
       docType: '',
       timePeriod: '',
-      payloadtimePeriod:'',
-      occurenceStartDate:occurenceStartDate,
-      occurenceEndDate:occurenceEndDate,
-      payloadStartDate:payloadStartDate,
-      payloadEndDate:payloadEndDate,
+      payloadtimePeriod: '',
+      occurenceStartDate: occurenceStartDate,
+      occurenceEndDate: occurenceEndDate,
+      payloadStartDate: payloadStartDate,
+      payloadEndDate: payloadEndDate,
       isDocument: true,
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
@@ -112,7 +114,7 @@ class CommunicationRequest extends Component {
       loadingSteps: false,
       dataLoaded: false
     }
-    
+
 
     this.requirementSteps = [
       { 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
@@ -147,6 +149,7 @@ class CommunicationRequest extends Component {
     this.onClickMenu = this.onClickMenu.bind(this);
     this.redirectTo = this.redirectTo.bind(this);
     this.updateStateElement = this.updateStateElement.bind(this);
+    this.updateClaimID = this.updateClaimID.bind(this);
     this.updateDocumentType = this.updateDocumentType.bind(this);
     this.updatetimePeriod = this.updatetimePeriod.bind(this);
     this.updatePayloadtimePeriod = this.updatePayloadtimePeriod.bind(this);
@@ -163,17 +166,28 @@ class CommunicationRequest extends Component {
     }))
   }
 
-  updateStateElement=(elementName,value)=> {
-    console.log("event----------", value,elementName)
-    this.setState({[elementName]:value})
-    console.log(this.state.vitalSigns,'yooopo')
+  updateStateElement = (elementName, value) => {
+    console.log("event----------", value, elementName)
+    this.setState({ [elementName]: value })
+    // console.log(this.state.vitalSigns, 'yooopo')
     // if (value.hasOwnProperty('value')) {
     //   // this.setState({ docType: event });
     // }
     // this.set 
   }
+
+  updateClaimID = (elementName, value) => {
+    console.log("event----------", value, elementName)
+    this.setState({ [elementName]: value })
+    // console.log(this.state.vitalSigns, 'yooopo')
+    // if (value.hasOwnProperty('value')) {
+    //   // this.setState({ docType: event });
+    // }
+    // this.set 
+  }
+
   updateDocumentType(event) {
-    console.log("event", event)
+    // console.log("event", event)
     if (event.hasOwnProperty('value')) {
       this.setState({ docType: event });
     }
@@ -181,27 +195,27 @@ class CommunicationRequest extends Component {
 
   updateDoc(e) {
     this.setState({ isDocument: true });
-    this.setState({vitalSigns:[]})
+    this.setState({ vitalSigns: [] })
   }
 
   updateDataElement(e) {
     this.setState({ isDocument: false });
-    this.setState({documents:[]})
+    this.setState({ documents: [] })
   }
 
   updatetimePeriod(event) {
     // console.log("red-------", startDate,endDate)
     let endDate = event.end.toISOString();
-    let startDate= event.start.toISOString();
-    this.setState({ occurenceStartDate: startDate }); 
-    this.setState({ occurenceEndDate: endDate }); 
+    let startDate = event.start.toISOString();
+    this.setState({ occurenceStartDate: startDate });
+    this.setState({ occurenceEndDate: endDate });
   }
   updatePayloadtimePeriod(event) {
-    console.log("event-------", event)
+    // console.log("event-------", event)
     let endDate = event.end.toISOString();
-    let startDate= event.start.toISOString();
-    this.setState({ payloadStartDate: startDate }); 
-    this.setState({ payloadEndDate: endDate }); 
+    let startDate = event.start.toISOString();
+    this.setState({ payloadStartDate: startDate });
+    this.setState({ payloadEndDate: endDate });
 
     // this.setState({ payloadtimePeriod: event }); 
   }
@@ -237,7 +251,7 @@ class CommunicationRequest extends Component {
   async componentDidMount() {
 
     try {
-      console.log("this.props.config.::", this.props.config, this.props.config.payer.fhir_url)
+      // console.log("this.props.config.::", this.props.config, this.props.config.payer.fhir_url)
       const fhirClient = new Client({ baseUrl: this.props.config.payer.fhir_url });
       // const token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
       // this.setState({ accessToken: token });
@@ -269,7 +283,7 @@ class CommunicationRequest extends Component {
       fhirClient.bearerToken = this.state.accessToken;
     }
     let readResponse = await fhirClient.search({ resourceType: resourceType });
-    console.log('Read Rsponse', readResponse)
+    // console.log('Read Rsponse', readResponse)
     return readResponse;
 
   }
@@ -280,24 +294,24 @@ class CommunicationRequest extends Component {
     // console.log("read comm req", resourceType, resourceId);
     // fhirClient.bearerToken = this.state.accessToken;
     // }
-    let token = await createToken(this.props.config.payer.grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-    if(this.props.config.payer.authorizedPayerFhir){
+    let token = await createToken(this.props.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+    if (this.props.config.payer.authorizedPayerFhir) {
       fhirClient.bearerToken = token;
     }
     let readResponse = await fhirClient.read({ resourceType: resourceType, id: resourceId });
-    console.log('Read Rsponse', readResponse)
+    // console.log('Read Rsponse', readResponse)
     return readResponse;
   }
 
-  async getResources( resource, identifier) {
+  async getResources(resource, identifier) {
     var url = this.props.config.payer.fhir_url + "/" + resource + "?identifier=" + identifier;
     let token;
     let headers = {
       "Content-Type": "application/json",
     }
-    token = await createToken(this.props.config.payer.grant_type,'payer',sessionStorage.getItem('username'), sessionStorage.getItem('password'))
-    if(this.props.config.payer.authorizedPayerFhir){
-      headers ['Authorization']= 'Bearer ' + token
+    token = await createToken(this.props.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'))
+    if (this.props.config.payer.authorizedPayerFhir) {
+      headers['Authorization'] = 'Bearer ' + token
     }
     let sender = await fetch(url, {
       method: "GET",
@@ -310,12 +324,12 @@ class CommunicationRequest extends Component {
     }).catch(reason =>
       console.log("No response recieved from the server", reason)
     );
-    console.log(sender,'sender')
+    // console.log(sender, 'sender')
     return sender;
   }
 
   async getPrefetchData() {
-    console.log(this.state.hook);
+    // console.log(this.state.hook);
     var docs = [];
     if (this.state.hook === "patient-view") {
       var prefectInput = { "Patient": this.state.patientId };
@@ -515,47 +529,47 @@ class CommunicationRequest extends Component {
     this.setState({ requirementSteps: steps, loadCards: false });
   }
 
-  async createFhirResource(json, resourceName,url,user) {
+  async createFhirResource(json, resourceName, url, user) {
     //  console.log("this.state.procedure_code")
     // console.log(this.state.procedure_code)
     this.setState({ loading: true });
 
     try {
-      const fhirClient = new Client({ baseUrl: url});
+      const fhirClient = new Client({ baseUrl: url });
       let token;
-      if(user == 'provider'){
+      if (user == 'provider') {
         console.log('using Provider Client Credentials')
 
-        if(this.props.config.provider.grant_type == 'client_credentials'){
+        if (this.props.config.provider.grant_type == 'client_credentials') {
           token = await createToken(this.props.config.provider.grant_type, user, this.props.config.provider.username, this.props.config.provider.password);
         }
-        else{
+        else {
           token = await createToken(this.props.config.provider.grant_type, user, this.props.config.provider.username, this.props.config.provider.password);
 
         }
-        if(this.props.config.provider.authorized_fhir){
+        if (this.props.config.provider.authorized_fhir) {
           fhirClient.bearerToken = token;
         }
       }
-      else if(user == 'payer'){
+      else if (user == 'payer') {
         console.log('using payer Client Credentials')
-        if(this.props.config.payer.grant_type == 'client_credentials'){
+        if (this.props.config.payer.grant_type == 'client_credentials') {
           token = await createToken(this.props.config.payer.grant_type, user, sessionStorage.getItem('username'), sessionStorage.getItem('password'));
         }
-        else{
+        else {
           token = await createToken(this.props.config.payer.grant_type, user, sessionStorage.getItem('username'), sessionStorage.getItem('password'));
         }
-        if(this.props.config.payer.authorizedPayerFhir){
+        if (this.props.config.payer.authorizedPayerFhir) {
           fhirClient.bearerToken = token;
         }
       }
-      console.log('The token is : ', token);
+      // console.log('The token is : ', token);
       let data = fhirClient.create({
         resourceType: resourceName,
         body: json,
         headers: { "Content-Type": "application/fhir+json" }
       }).then((data) => {
-        console.log("Data::", data);
+        // console.log("Data::", data);
         this.setState({ dataLoaded: true })
         this.setState({ response: data })
         this.setState({ reqId: data.id })
@@ -602,9 +616,9 @@ class CommunicationRequest extends Component {
     const min = 1;
     const max = 1000000000;
     const num = parseInt(min + Math.random() * (max - min));
-    console.log("num----------", num);
-    let req_check = await this.getResources( "CommunicationRequest", num);
-    console.log("random------------", req_check);
+    // console.log("num----------", num);
+    let req_check = await this.getResources("CommunicationRequest", num);
+    // console.log("random------------", req_check);
     if (req_check.hasOwnProperty('total')) {
       if (req_check.total > 0) {
         await this.getRequestID();
@@ -671,37 +685,37 @@ class CommunicationRequest extends Component {
             "value": request_id
           }
         ],
-        "contained":[
-          {  
-            "resourceType":"Endpoint",
-            "id":"END123",
-            "meta":{  
-               "versionId":"1",
-               "lastUpdated":"2019-04-09T14:11:04.000+00:00"
+        "contained": [
+          {
+            "resourceType": "Endpoint",
+            "id": "END123",
+            "meta": {
+              "versionId": "1",
+              "lastUpdated": "2019-04-09T14:11:04.000+00:00"
             },
-            "address":"http://3.92.187.150:8180/hapi-fhir-jpaserver/fhir/Communication"
-         },
-         {
+            "address": "http://3.92.187.150:8180/hapi-fhir-jpaserver/fhir/Communication"
+          },
+          {
             "resourceType": "Organization",
             "id": this.state.payerId,
             "identifier": [
               {
-                  "system": "http://www.Anthem.com/edi",
-                  "value": "DemoPayer"
+                "system": "http://www.Anthem.com/edi",
+                "value": "DemoPayer"
               },
               {
-                  "system": "https://www.maxmddirect.com/fhir/identifier",
-                  "value": "MaxMDDemoPayerOrganization-eval"
+                "system": "https://www.maxmddirect.com/fhir/identifier",
+                "value": "MaxMDDemoPayerOrganization-eval"
               }
-          ],
-          "name": "MaxMD Demo Payer Solutions",
-          "endpoint": [
+            ],
+            "name": "MaxMD Demo Payer Solutions",
+            "endpoint": [
               {
-                  "reference": "#END123"
+                "reference": "#END123"
               }
-          ]
-        }
-      ],
+            ]
+          }
+        ],
         "category": [
           {
             "coding": [
@@ -741,96 +755,97 @@ class CommunicationRequest extends Component {
         "sender": {
           "reference": "#" + this.state.payerId
         },
-        // "about": [
-        //   {
-        //     "reference": "Claim?identifier=12347"
-        //   }
-        // ],
+        "about": [
+          {
+            "reference": "Claim?identifier="+this.state.claimid
+          }
+        ],
         "occurrencePeriod": {
           "start": this.state.occurenceStartDate,
           "end": this.state.occurenceEndDate
         },
         "authoredOn": currentDateTime
       }
-      
+
       req_json.payload = [];
-      console.log("this.state.isDocument", this.state.isDocument);
-      console.log("this.state.docType", this.state.docType);
+      console.log("final----------------", req_json);
+      // console.log("this.state.docType", this.state.docType);
       if (this.state.isDocument) {
         let documents = this.state.documents;
         let ext = [];
         // let timePeriod = this.state.payloadtimePeriod
         // let endDate= timePeriod.end.toISOString();
-        let endDate= this.state.payloadEndDate
+        let endDate = this.state.payloadEndDate
         // let startDate = timePeriod.start.toISOString();
         let startDate = this.state.payloadStartDate
 
-        console.log('payloadstart:',startDate,'Payloadendate:',endDate)
+        // console.log('payloadstart:', startDate, 'Payloadendate:', endDate)
         // console.log(timePeriod,'uoo')
-        for(var i =0; i<documents.length;i++){
+        for (var i = 0; i < documents.length; i++) {
           var fields = documents[i].split('|')
           req_json.payload.push({
-            'extension':[{
+            'extension': [{
               'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
-              'valueCodeableConcept':{
+              'valueCodeableConcept': {
                 "coding": [
                   {
                     "system": "http://loinc.org",
-                    "code":fields[0]
+                    "code": fields[0]
                   }
                 ]
               }
             }],
-            'cdex-payload-clinical-note-type':{
+            'cdex-payload-clinical-note-type': {
+              'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
+              'extension': [{
                 'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
-                'extension':[{
-                  'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
-                  'valueCodeableConcept':{
-                    "coding": [
-                      {
-                        "system": "http://loinc.org",
-                        "code":fields[0]
-                      }
-                    ]
-                  }
-                }],
-                'valueCodeableConcept':{
+                'valueCodeableConcept': {
                   "coding": [
                     {
                       "system": "http://loinc.org",
-                      "code":fields[0]
+                      "code": fields[0]
                     }
                   ]
-                }},
-            "contentString": "Please provide "+fields[1]+ " recorded during "+startDate.substring(0,10)+" - "+endDate.substring(0,10)
+                }
+              }],
+              'valueCodeableConcept': {
+                "coding": [
+                  {
+                    "system": "http://loinc.org",
+                    "code": fields[0]
+                  }
+                ]
+              }
+            },
+            "contentString": "Please provide " + fields[1] + " recorded during " + startDate.substring(0, 10) + " - " + endDate.substring(0, 10)
           })
         }
       }
       else {
         let vitalSigns = this.state.vitalSigns
-        console.log('inside else',vitalSigns)
-        let endDate= this.state.payloadEndDate
+        // console.log('inside else', vitalSigns)
+        let endDate = this.state.payloadEndDate
         let startDate = this.state.payloadStartDate
-        console.log('payloadstart:',startDate,'Payloadendate:',endDate)
+        // console.log('payloadstart:', startDate, 'Payloadendate:', endDate)
         for (var i = 0; i < vitalSigns.length; i++) {
-          console.log('in this looop')
-          var fields=vitalSigns[i].split("|")
+          // console.log('in this looop')
+          var fields = vitalSigns[i].split("|")
           req_json.payload.push({
-              'extension':[{
+            'extension': [{
+              'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
+              'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
+            }],
+            'cdex-payload-query-string': {
+              'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
+              'extension': [{
                 'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
-                'valueString':"Observation?patient.identifier="+this.state.patientId+"&date=gt"+startDate+"&date=lt"+endDate+"&code="+fields[0]
+                'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
+
               }],
-              'cdex-payload-query-string': {
-                  'url':'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
-                  'extension':[{
-                    'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
-                    'valueString':"Observation?patient.identifier="+this.state.patientId+"&date=gt"+startDate+"&date=lt"+endDate+"&code="+fields[0]
-    
-                  }],
-                  'valueString':"Observation?patient.identifier="+this.state.patientId+"&date=gt"+startDate+"&date=lt"+endDate+"&code="+fields[0]
-                },
-              "contentString": "Please provide "+fields[1]+" recorded during "+startDate.substring(0,10)+" - "+endDate.substring(0,10)
-            })
+              'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
+            },
+            "contentString": "Please provide " + fields[1] + " recorded during " + startDate.substring(0, 10) + " - " + endDate.substring(0, 10)
+          })
         }
       }
       // let documents = this.state.documents
@@ -840,14 +855,14 @@ class CommunicationRequest extends Component {
       //   }
       // }
 
-      console.log("Requestqqqq:", req_json)
-      console.log(JSON.stringify(req_json))
+      // console.log("Requestqqqq:", req_json)
+      // console.log(JSON.stringify(req_json))
 
-      let commRequest = await this.createFhirResource(req_json, 'CommunicationRequest',this.props.config.provider.fhir_url,'provider' )
-      console.log(commRequest,'yess')
-      req_json.identifier.value = commRequest.identifier.value  
-      let communication = await this.createFhirResource(req_json, 'CommunicationRequest',this.props.config.payer.fhir_url,'payer')
-      console.log(communication,'yess plese')
+      let commRequest = await this.createFhirResource(req_json, 'CommunicationRequest', this.props.config.provider.fhir_url, 'provider')
+      // console.log(commRequest, 'yess')
+      req_json.identifier.value = commRequest.identifier.value
+      let communication = await this.createFhirResource(req_json, 'CommunicationRequest', this.props.config.payer.fhir_url, 'payer')
+      // console.log(communication, 'yess plese')
       sessionStorage.setItem('patientId', this.state.patientId)
       sessionStorage.setItem('practitionerId', this.state.practitionerId)
       sessionStorage.setItem('payerId', this.state.payerId)
@@ -866,9 +881,9 @@ class CommunicationRequest extends Component {
   }
   renderForm() {
     let local = {
-      "format":"DD-MM-YYYY HH:mm",
-      "sundayFirst" : false
-      }
+      "format": "DD-MM-YYYY HH:mm",
+      "sundayFirst": false
+    }
     return (
       <React.Fragment>
         <div>
@@ -893,7 +908,7 @@ class CommunicationRequest extends Component {
           </div>
           <div className="content">
             <div className="left-form">
-              <div>
+              {/* <div>
                 <div className="header">
                   Payer Identifier*
                       </div>
@@ -905,7 +920,7 @@ class CommunicationRequest extends Component {
                   <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
                 }
 
-              </div>
+              </div> */}
               <div>
                 <div className="header">
                   Practitioner NPI*
@@ -930,6 +945,26 @@ class CommunicationRequest extends Component {
                 }
               </div>
               <div>
+                <div className="header">
+                  Purpose
+                  </div>
+                <div className="dropdown">
+                  <DropdownPurpose elementName="purpose" updateCB={this.updateStateElement} />
+                  {/* <Select options={this.typeOfDocuments} onChange={this.updateDocumentType} value={this.typeOfDocuments.label} /> */}
+                </div>
+
+              </div>
+              <div>
+                <div className="header">
+                  Select Claim ID
+                  </div>
+                <div className="dropdown">
+                  <DropdownClaim elementName="claimid" updateCB={this.updateClaimID} />
+                  {/* <Select options={this.typeOfDocuments} onChange={this.updateDocumentType} value={this.typeOfDocuments.label} /> */}
+                </div>
+
+              </div>
+              <div>
                 <div><span className="header">Select Payload type</span>
                   <input type="radio" checked={this.state.isDocument === true} onChange={this.updateDoc} /> Clinical Note
                 <input type="radio" checked={this.state.isDocument === false} onChange={this.updateDataElement} />Data Elements
@@ -941,7 +976,7 @@ class CommunicationRequest extends Component {
                     Clinical Note
                   </div>
                   <div className="dropdown">
-                    <DropdownDocument elementName="documents"  updateCB={this.updateStateElement}/>
+                    <DropdownDocument elementName="documents" updateCB={this.updateStateElement} />
                     {/* <Select options={this.typeOfDocuments} onChange={this.updateDocumentType} value={this.typeOfDocuments.label} /> */}
                   </div>
 
@@ -955,7 +990,7 @@ class CommunicationRequest extends Component {
                     {/* <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
                     <span>( NOTE: Use ',' to separate multiple values.For Example: "Red,Green,Blue" )
                     </span> */}
-                    <DropdownVitalSigns elementName="vitalSigns"  updateCB={this.updateStateElement}/>
+                    <DropdownVitalSigns elementName="vitalSigns" updateCB={this.updateStateElement} />
 
                   </div>
 
@@ -971,36 +1006,36 @@ class CommunicationRequest extends Component {
 
                 </div>}
               <div>
-                
-              <div> 
-                <div className="header">
-                  Occurence Time period
+
+                <div>
+                  <div className="header">
+                    Occurence Time period
                   </div>
-                <div className="dropdown">
-          
-                  <DatetimeRangePicker onChange={this.updatetimePeriod} startDate={this.state.occurenceStartDate} endDate={this.state.occurenceEndDate} />
-                  {/* <DatetimeRangePicker onChange={this.updatetimePeriod} startDate />  */}
+                  <div className="dropdown">
+
+                    <DatetimeRangePicker onChange={this.updatetimePeriod} startDate={this.state.occurenceStartDate} endDate={this.state.occurenceEndDate} />
+                    {/* <DatetimeRangePicker onChange={this.updatetimePeriod} startDate />  */}
+
+                  </div>
 
                 </div>
-
-              </div>
-              {this.state.isDocument &&
-                <div className="header">
-                  Clinical Note Time period
+                {this.state.isDocument &&
+                  <div className="header">
+                    Clinical Note Time period
                   </div>
-              }
-              {this.state.isDocument == false &&
-                <div className="header">
+                }
+                {this.state.isDocument == false &&
+                  <div className="header">
                     Observation Time period
                 </div>
-              }
+                }
                 <div className="dropdown">
                   <DatetimeRangePicker onChange={this.updatePayloadtimePeriod} startDate={this.state.payloadStartDate} endDate={this.state.payloadEndDate} />
                 </div>
 
               </div>
 
-              
+
               {/*
                 <div>
                   <div className="header">

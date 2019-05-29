@@ -14,7 +14,7 @@ export async function createJwt(){
     var pubKey =keypair.pubKeyObj;
     const jwkPrv2 = KEYUTIL.getJWKFromKey(keypair.prvKeyObj);
     const jwkPub2 = KEYUTIL.getJWKFromKey(keypair.pubKeyObj);
-    console.log(pubKey);
+    // console.log(pubKey);
     const currentTime = KJUR.jws.IntDate.get('now');
     const endTime = KJUR.jws.IntDate.get('now + 1day');
     const kid = KJUR.jws.JWS.getJWKthumbprint(jwkPub2)

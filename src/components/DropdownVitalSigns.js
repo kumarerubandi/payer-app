@@ -32,14 +32,14 @@ export default class DropdownDocument extends Component {
   };
 
   handleChange = (event,{value}) => {
-    console.log(this.props);
-    console.log(event.currentValue,'eventtt',value)
+    // console.log(this.props);
+    // console.log(event.currentValue,'eventtt',value)
     this.props.updateCB(this.props.elementName, value)
     this.setState({ currentValue: value })
   }
 
   render() {
-    console.log("this.state",this.state);
+    // console.log("this.state",this.state);
     const { currentValue } = this.state;
     if(currentValue){
         blackBorder = "blackBorder";
