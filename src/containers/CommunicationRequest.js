@@ -745,7 +745,7 @@ class CommunicationRequest extends Component {
           }
         ],
         "subject": {
-          "reference": "Patient/" + this.state.patientId
+          "reference": "Patient?identifier=" + this.state.patientId
         },
         "requester": {
           // "reference": "Organization?identifier=" + this.state.payerId
