@@ -34,6 +34,7 @@ class Configuration extends Component {
                     patient_view_path: props.config.crd.patient_view_path
                 },
                 payer: {
+                    payerIdentifier: props.config.payer.payerIdentifier,
                     fhir_url: props.config.payer.fhir_url,
                     grant_type: props.config.payer.grant_type,
                     client_id : props.config.payer.client_id,
@@ -69,6 +70,7 @@ class Configuration extends Component {
         this.onChangeCrdUrl = this.onChangeCrdUrl.bind(this);
         this.onChangeCoverageDecisionPath = this.onChangeCoverageDecisionPath.bind(this);
         this.onChangeCoverageRequirementPath = this.onChangeCoverageRequirementPath.bind(this);
+        this.onChangePayerIdentifier = this.onChangePayerIdentifier.bind(this);
         this.onChangePayerFhirUrl = this.onChangePayerFhirUrl.bind(this);
         this.onChangePayerClientSecret = this.onChangePayerClientSecret.bind(this);
         this.onChangePayerClientId = this.onChangePayerClientId.bind(this);
@@ -120,6 +122,11 @@ class Configuration extends Component {
     onChangeCoverageRequirementPath(event) {
         let config = this.state.config;
         config.crd.coverage_requirement_path = event.target.value
+        this.setState({ config })
+    }
+    onChangePayerIdentifier(event) {
+        let config = this.state.config;
+        config.payer.payerIdentifier = event.target.value
         this.setState({ config })
     }
     onChangePayerFhirUrl(event) {
@@ -265,6 +272,13 @@ class Configuration extends Component {
                                     defaultValue={this.state.config.crd.coverage_requirement_path}>
                                 </Input>
                             </div> */}
+                            <div className='header'>Payer Identifier</div>
+                            <div className="dropdown">
+                                <Input className='ui fluid input' type="text" fluid name="payerIdentifier"
+                                    onChange={this.onChangePayerIdentifier}
+                                    defaultValue={this.state.config.payer.payerIdentifier}>
+                                </Input>
+                            </div>
 
                             <div className='header'>Payer FHIR URL</div>
                             <div className="dropdown">

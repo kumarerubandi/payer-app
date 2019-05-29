@@ -990,9 +990,9 @@ class CommunicationHandler extends Component {
                   <i style={{ paddingLeft: "3px", paddingRight: "7px" }} className="fa fa-sign-out" aria-hidden="true"></i>Logout</button>
               </div>
             </div>
-            <div className="menu_conf" onClick={() => this.redirectTo('communication_request')}>
+            <div className="menu_conf" onClick={() => this.redirectTo('request_for_documentation')}>
               <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-comments"></i>
-              Communication Request</div>
+              Request For Documentation</div>
             <div className="menu_conf" onClick={() => this.setRequestType('config-view')}>
               <i style={{ paddingLeft: "5px", paddingRight: "7px" }} className="fa fa-cog"></i>
               Configuration

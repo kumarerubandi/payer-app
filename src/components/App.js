@@ -26,7 +26,7 @@ export default class App extends Component {
                     <Route exact path="/" component={() => { return <Redirect to="/login" />}} />
                     <Route path={"/login"} component={LoginPage} />                    
                     <Route path={"/communications"} component={CommunicationHandler} />                
-                    <Route path={"/communication_request"} component={CommunicationRequest} />                    
+                    <Route path={"/request_for_documentation"} component={CommunicationRequest} />                    
                     <Route path={"/configuration"} component={Configuration} />
 
                 </Switch>

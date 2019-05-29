@@ -22,7 +22,8 @@
         "client_secret": "a94a56e2-f6be-4c76-ae12-3b6acf7173d5",
         "client_id": "d2142e65-0946-474e-8cf4-1427ae6ec3c6",
         "grant_type":"client_credentials",
-        "authorizedPayerFhir": true
+        "authorizedPayerFhir": true,
+        "payerIdentifier":"6677829"
 
       },
       "provider":{
