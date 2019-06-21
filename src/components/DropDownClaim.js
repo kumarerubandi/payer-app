@@ -45,7 +45,7 @@ export default class DropdownClaim extends Component {
     }
 
     async getResources() {
-        var url = 'http://3.92.187.150:8180/hapi-fhir-jpaserver/fhir/Claim';
+        var url = 'http://54.227.218.17:8180/hapi-fhir-jpaserver/fhir/Claim';
         let token;
         token = await createToken('client_credentials', 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'))
         let headers = {

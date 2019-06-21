@@ -3,7 +3,7 @@
   "client_id": "app-login",
   "token_type": "Bearer",
   "expires_in": 300,
-  "provider_token_url": "https://3.92.187.150:8443/auth/realms/ProviderCredentials/protocol/openid-connect/token",
+  "provider_token_url": "https://54.227.218.17:8443/auth/realms/ProviderCredentials/protocol/openid-connect/token",
   "provider_logs": {
     "error": "errorClass",
     "info": "infoClass",
@@ -23,7 +23,7 @@
     }
   ],
   "authorized_fhir": true,
-  "payer_fhir": "http://3.92.187.150:8280/payer_fhir/baseDstu3/",
+  "payer_fhir": "http://54.227.218.17:8280/payer_fhir/baseDstu3/",
   "provider_login_params": {
     "grant_type": "password",
     "username": "john",
@@ -52,7 +52,7 @@
   "provider_hook_instance": "d1577c69-dfbe-44ad-ba6d-3e05e953b2ea",
   "fhir_auth_scope": "patient/Patient.read patient/Observation.read",
   "fhir_auth_subject": "cds-service4",
-  "crd_url": "http://3.92.187.150:8090/",
+  "crd_url": "http://54.227.218.17:8090/",
   "provider_coverage_decision_url": "cds-services/coverage_decision",
   "provider_prior_authorization_url": "cds-services/prior_authorization",
   "provider_coverage_requirement_url": "cds-services/coverage_requirement",

@@ -698,7 +698,7 @@ class CommunicationRequest extends Component {
               "versionId": "1",
               "lastUpdated": "2019-04-09T14:11:04.000+00:00"
             },
-            "address": "http://3.92.187.150:8180/hapi-fhir-jpaserver/fhir/Communication"
+            "address": "http://54.227.218.17:8180/hapi-fhir-jpaserver/fhir/Communication"
           },
           {
             "resourceType": "Organization",
