@@ -6,12 +6,12 @@ import { connect } from 'react-redux';
 
 let blackBorder = "blackBorder";
 
-export class DropdownClaim extends Component {
+export class DropdownPatient extends Component {
     constructor(props) {
         super(props);
         this.state = {
             currentValue: "",
-            claims: []
+            patients: []
         };
         console.log("props------", props);
         this.handleChange = this.handleChange.bind(this);
@@ -21,25 +21,25 @@ export class DropdownClaim extends Component {
     async componentDidMount() {
 
         try {
-            let claims = await this.getResources();
+            let patients = await this.getResources();
             let list = [];
             let i = 0;
-            claims.entry.map((item, key) => {
+            patients.entry.map((item, key) => {
                 i = i + 1;
                 let res = item.resource;
-                let claim_state = { key: '', value: '', text: '' };
+                let patient_state = { key: '', value: '', text: '' };
                 Object.keys(res).map((k, v) => {
                     if (k == 'id') {
-                        claim_state.text = res[k];
+                        patient_state.text = res[k];
                     }
                     if (k == 'identifier') {
-                        claim_state.value = res[k][0]['value'];
+                        patient_state.value = res[k][0]['value'];
                     }
-                    claim_state.key = 'claim' + i;
+                    patient_state.key = 'patient' + i;
                 });
-                list.push(claim_state);
+                list.push(patient_state);
             });
-            this.setState({claims:list});
+            this.setState({patients:list});
         } catch (error) {
             console.log('Communication Creation failed', error);
         }
@@ -47,7 +47,7 @@ export class DropdownClaim extends Component {
     }
 
     async getResources() {
-        var url = this.props.config.payer.fhir_url+'/Claim';
+        var url = this.props.config.payer.fhir_url+'/Patient';
         let token;
         token = await createToken(this.props.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'))
         let headers = {
@@ -55,7 +55,7 @@ export class DropdownClaim extends Component {
             'Authorization': 'Bearer ' + token
         }
 
-        let claims = await fetch(url, {
+        let patients = await fetch(url, {
             method: "GET",
             headers: headers
         }).then(response => {
@@ -67,7 +67,7 @@ export class DropdownClaim extends Component {
             console.log("No response recieved from the server", reason)
         );
         // console.log(sender, 'sender')
-        return claims;
+        return patients;
     }
 
     handleChange = (e, { value }) => {
@@ -87,8 +87,8 @@ export class DropdownClaim extends Component {
         return (
             <Dropdown
                 className={blackBorder}
-                options={this.state.claims}
-                placeholder='Select Claim'
+                options={this.state.patients}
+                placeholder='Select Patient'
                 search
                 selection
                 fluid
@@ -98,10 +98,11 @@ export class DropdownClaim extends Component {
     }
 }
 
+
 function mapStateToProps(state) {
     console.log(state);
     return {
       config: state.config,
     };
   };
-export default withRouter(connect(mapStateToProps)(DropdownClaim));
+  export default withRouter(connect(mapStateToProps)(DropdownPatient));

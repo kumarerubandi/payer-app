@@ -26,6 +26,7 @@ import DatetimeRangePicker from 'react-datetime-range-picker';
 import moment from "moment";
 import DropdownPurpose from '../components/DropdownPurpose';
 import DropdownClaim from '../components/DropDownClaim';
+import DropdownPatient from '../components/DropDownPatient';
 
 let now = new Date();
 let occurenceStartDate = moment(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 0, 0, 0)).toISOString();
@@ -103,6 +104,7 @@ class CommunicationRequest extends Component {
       payloadStartDate: payloadStartDate,
       payloadEndDate: payloadEndDate,
       isDocument: true,
+      queries: [{query:"", searchString:"",resource:""}],
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
         'step_no': 2, 'step_str': 'Retrieving the required 4 FHIR resources on crd side.', 'step_status': 'step_not_started'
@@ -155,6 +157,7 @@ class CommunicationRequest extends Component {
     this.updatePayloadtimePeriod = this.updatePayloadtimePeriod.bind(this);
     this.updateDataElement = this.updateDataElement.bind(this);
     this.updateDoc = this.updateDoc.bind(this);
+    this.addQuery = this.addQuery.bind(this);
   }
   consoleLog(content, type) {
     let jsonContent = {
@@ -166,6 +169,28 @@ class CommunicationRequest extends Component {
     }))
   }
 
+  addQuery= (e) => {
+    this.setState((prevState) => ({
+      queries: [...prevState.queries, {query:"", searchString:"",resource:""}],
+    }));
+    console.log("qState queries--,",this.state.queries)
+  }
+  handleChange = (e) => {
+    console.log("query------",e.target.value,e.target.dataset)
+    if (["query", "searchString","resource"].includes(e.target.name) ) {
+      let queries = [...this.state.queries]
+      queries[e.target.id][e.target.name] = e.target.value
+      this.setState({ queries }, () => console.log(this.state.queries))
+    } else {
+      this.setState({ [e.target.name]: e.target.value})
+    }
+    console.log("In queries--,",this.state.queries)
+  }
+  //   let queries = this.state.queries;
+  //   console.log("queries--",queries)
+  //   queries= queries.push({query:"", searchString:"",resource:""});
+  //   this.setState({queries:queries})
+  //   console.log("qState queries--,",this.state.queries)
   updateStateElement = (elementName, value) => {
     console.log("event----------", value, elementName)
     this.setState({ [elementName]: value })
@@ -424,8 +449,9 @@ class CommunicationRequest extends Component {
   onEncounterChange(event) {
     this.setState({ encounterId: event.target.value });
   }
-  onPatientChange(event) {
-    this.setState({ patientId: event.target.value });
+  onPatientChange= (elementName, value) => {
+    console.log("event----------", value, elementName)
+    this.setState({ [elementName]: value })
     this.setState({ validatePatient: false });
 
   }
@@ -991,18 +1017,40 @@ class CommunicationRequest extends Component {
         }
       }
       else {
-        let vitalSigns = this.state.vitalSigns
-        // console.log('inside else', vitalSigns)
+        // let vitalSigns = this.state.vitalSigns
+        // // console.log('inside else', vitalSigns)
         let endDate = this.state.payloadEndDate
         let startDate = this.state.payloadStartDate
-        // console.log('payloadstart:', startDate, 'Payloadendate:', endDate)
-        for (var i = 0; i < vitalSigns.length; i++) {
-          // console.log('in this looop')
-          var fields = vitalSigns[i].split("|")
-          for(var i=0;i<provider_req_json.entry.length;i++){
-            if(provider_req_json.entry[i].resource.resourceType == 'CommunicationRequest'){
-              provider_req_json.entry[i].resource.payload.push({
-                'extension': [{
+        // // console.log('payloadstart:', startDate, 'Payloadendate:', endDate)
+        // for (var i = 0; i < vitalSigns.length; i++) {
+        //   // console.log('in this looop')
+        //   var fields = vitalSigns[i].split("|")
+        //   for(var i=0;i<provider_req_json.entry.length;i++){
+        //     if(provider_req_json.entry[i].resource.resourceType == 'CommunicationRequest'){
+        //       provider_req_json.entry[i].resource.payload.push({
+        //         'extension': [{
+        //           'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
+        //           'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
+        //         }],
+        //         'cdex-payload-query-string': {
+        //           'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
+        //           'extension': [{
+        //             'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
+        //             'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
+
+        //           }],
+        //           'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
+        //         },
+        //         "contentString": "Please provide " + fields[1] + " recorded during " + startDate.substring(0, 10) + " - " + endDate.substring(0, 10)
+        //       })
+        //     }
+        //   }
+        // }
+        let queries = this.state.queries;
+        for (var i = 0; i < queries.length; i++) {
+          if(provider_req_json.entry[i].resource.resourceType == 'CommunicationRequest'){
+            provider_req_json.entry[i].resource.payload.push({
+              'extension': [{
                   'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
                   'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
                 }],
@@ -1013,11 +1061,10 @@ class CommunicationRequest extends Component {
                     'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
 
                   }],
-                  'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
+                  'valueString': queries[i].resource+'?'+queries[i].searchString
                 },
-                "contentString": "Please provide " + fields[1] + " recorded during " + startDate.substring(0, 10) + " - " + endDate.substring(0, 10)
-              })
-            }
+                "contentString": queries[i].query
+            })
           }
         }
       }
@@ -1130,7 +1177,8 @@ renderForm() {
                 Beneficiary Identifier*
                     </div>
               <div className="dropdown">
-                <Input className='ui fluid   input' type="text" name="patient" fluid value={this.state.patientId} onChange={this.onPatientChange}></Input>
+              <DropdownPatient elementName="patientId" updateCB={this.onPatientChange} />
+                {/* <Input className='ui fluid   input' type="text" name="patient" fluid value={this.state.patientId} onChange={this.onPatientChange}></Input> */}
               </div>
               {this.state.validatePatient === true &&
                 <div className='errorMsg dropdown'>{this.props.config.errorMsg}</div>
@@ -1182,8 +1230,41 @@ renderForm() {
                   {/* <Input className='ui fluid   input' type="text" name="reason" fluid value={this.state.reasons} onChange={this.onReasonChange}></Input>
                     <span>( NOTE: Use ',' to separate multiple values.For Example: "Red,Green,Blue" )
                     </span> */}
-                  <DropdownVitalSigns elementName="vitalSigns" updateCB={this.updateStateElement} />
-
+                  {/* /<DropdownVitalSigns elementName="vitalSigns" updateCB={this.updateStateElement} /> */}
+                  <button onClick={this.addQuery}>Add new query</button>
+                  {
+          this.state.queries.map((val, idx)=> {
+            let QueryId = `query-${idx}`, searchStrId = `searchStr-${idx}`
+            return (
+              <div key={idx}>
+                <label htmlFor={QueryId}>{`Query #${idx + 1}`}</label>
+                <Input
+                  type="text"
+                  name="query"
+                  id={idx}
+                  className="query"
+                  onChange={this.handleChange} 
+                />
+                <label htmlFor={searchStrId}>Search String</label>
+                <Input
+                  type="text"
+                  name="searchString"
+                  id={idx}
+                  className="searchString"
+                  onChange={this.handleChange} 
+                />
+                <label htmlFor={searchStrId}>Resource</label>
+                <Input
+                  type="text"
+                  name="resource"
+                  id={idx}
+                  className="resource"
+                  onChange={this.handleChange} 
+                />
+              </div>
+            )
+          })
+        }
                 </div>
 
                 {/* <div className="dropdown">
@@ -1229,10 +1310,8 @@ renderForm() {
 
 
             {/*
-                <div>
-                  <div className="header">
-                    Documents
-                  </div>
+                <div> ocuments
+                  </3div>
                   <div className="dropdown">
                     <DropdownDocument
                       elementName='documents'
