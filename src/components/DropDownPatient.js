@@ -29,8 +29,17 @@ export class DropdownPatient extends Component {
                 let res = item.resource;
                 let patient_state = { key: '', value: '', text: '' };
                 Object.keys(res).map((k, v) => {
-                    if (k == 'id') {
-                        patient_state.text = res[k];
+                    // if (k == 'id') {
+                    //     patient_state.text = res[k];
+                    // }
+                    if(k == "name"){
+                        if(res[k][0].given.length>1){
+                            patient_state.text=   res[k][0].given[0] +" "+res[k][0].given[1]+" "+ res[k][0].family
+                        }
+                        else{
+                            patient_state.text=   res[k][0].given[0]+" "+res[k][0].family
+                        }
+                        
                     }
                     if (k == 'identifier') {
                         patient_state.value = res[k][0]['value'];

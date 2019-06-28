@@ -54,7 +54,7 @@ class CommunicationRequest extends Component {
       payer: '',
       patientId: sessionStorage.getItem('patientId'),
       payerId: "6677829",
-      practitionerId: sessionStorage.getItem('practitionerId'),
+      practitionerId: "9941339229",
       resourceType: null,
       resourceTypeLT: null,
       encounterId: '',
@@ -601,9 +601,14 @@ class CommunicationRequest extends Component {
         headers: { "Content-Type": "application/fhir+json" }
       }).then((data) => {
         console.log("Data::", data);
-        this.setState({ dataLoaded: true })
+        
+        
         this.setState({ response: data })
-        this.setState({ reqId: data.id })
+        if(user == 'provider'){
+          this.setState({ dataLoaded: true })
+          var commReqId= data.entry[2].response.location.split('/')[1]
+          this.setState({ reqId: commReqId })
+        }
         this.setState({ loading: false });
         return data;
       }).catch((err) => {
@@ -819,11 +824,7 @@ class CommunicationRequest extends Component {
       //   },
       //   "authoredOn": currentDateTime
       // }
-      organizationObj['endpoint']={
-        "reference":"Endpoint/Payer-Endpoint-Id"
-      }
-      organizationObj.id = "Payer-organization-id"
-      console.log(organizationObj,'org')
+     
       let provider_req_json = 
         {
           "resourceType": "Bundle",
@@ -834,7 +835,7 @@ class CommunicationRequest extends Component {
           "type": "transaction",
           "entry": [
           {
-            "fullUrl": "urn:uuid:"+endPointFullUri,
+            // "fullUrl": "urn:uuid:"+endPointFullUri,
             "resource": {
               "resourceType": "Endpoint",
               "id":"Payer-Endpoint-Id",
@@ -844,29 +845,50 @@ class CommunicationRequest extends Component {
                   "value": endPoint_identifier
                 }
               ],
+              "connectionType": {
+                "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+                "code": "hl7-fhir-rest"
+              },
               "address": "http://54.227.218.17:8180/hapi-fhir-jpaserver/fhir/Communication"
             },
             "request": {
               "method": "POST",
               "url": "Endpoint",
               "ifNoneExist": {
-                "_value": "identifier=http://www.jurisdiction.com/insurer/123456&indentifier"+endPoint_identifier
+                "_value": "identifier=http://www.jurisdiction.com/insurer/123456|"+endPoint_identifier
              }
             }
           },
+          // organizationObj['endpoint']={
+          //   "reference":"Endpoint/Payer-Endpoint-Id"
+          // }
+          // organizationObj.id = "Payer-organization-id"
+          // console.log(organizationObj,'org')
           {
-            "fullUrl": "urn:uuid:"+organizationFullUri,
-            "resource": organizationObj,
+            // "fullUrl": "urn:uuid:"+organizationFullUri,
+            // "resource": organizationObj,
+            "resource":{
+              'resourceType':organizationObj.resourceType,
+              'identifier':organizationObj.identifier,
+              'id':"Payer-Organization-Id",
+              'name':organizationObj.name,
+              'telecom':organizationObj.telecom,
+              'address':organizationObj.address,
+              'endpoint':[{
+                'reference':'Endpoint/Payer-Endpoint-Id'
+              }]
+            },
             "request": {
               "method": "POST",
               "url": "Organization",
               "ifNoneExist": {
-                "_value": "identifier="+organizationObj.identifier[0].system+"&identifier="+organizationObj.identifier[0].value
+
+                "_value": encodeURIComponent("identifier="+organizationObj.identifier[0].system+'|'+organizationObj.identifier[0].value)
              }
             }
           },
           {
-            "fullUrl": "urn:uuid:"+commRequestFullUri,
+            // "fullUrl": "urn:uuid:"+commRequestFullUri,
             "resource": {
             "resourceType": "CommunicationRequest",
             "identifier": [
@@ -925,7 +947,7 @@ class CommunicationRequest extends Component {
             },
             "requester": {
               // "reference": "Organization?identifier=" + this.state.payerId
-              "reference": "Organization/"+organizationObj.id
+              "reference": "Organization/Payer-Organization-Id"
             },
             // 'about': [{
             //   "reference": "Claim?identifier=" + this.state.claimid
@@ -933,7 +955,7 @@ class CommunicationRequest extends Component {
             "status": "active",
             "recipient": [
               {
-                "reference": "Organization/"+organizationObj.id
+                "reference": "Organization/Payer-Organization-Id"
               }
             ],
             "sender": {
@@ -973,9 +995,9 @@ class CommunicationRequest extends Component {
         // console.log(timePeriod,'uoo')
         for (var i = 0; i < documents.length; i++) {
           var fields = documents[i].split('|')
-          for(var i=0;i<provider_req_json.entry.length;i++){
-            if(provider_req_json.entry[i].resource.resourceType == 'CommunicationRequest'){
-              provider_req_json.entry[i].resource.payload.push({
+          for(var j=0;j<provider_req_json.entry.length;j++){
+            if(provider_req_json.entry[j].resource.resourceType == 'CommunicationRequest'){
+              provider_req_json.entry[j].resource.payload.push({
                 'extension': [{
                   'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
                   'valueCodeableConcept': {
@@ -987,28 +1009,28 @@ class CommunicationRequest extends Component {
                     ]
                   }
                 }],
-                'cdex-payload-clinical-note-type': {
-                  'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
-                  'extension': [{
-                    'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
-                    'valueCodeableConcept': {
-                      "coding": [
-                        {
-                          "system": "http://loinc.org",
-                          "code": fields[0]
-                        }
-                      ]
-                    }
-                  }],
-                  'valueCodeableConcept': {
-                    "coding": [
-                      {
-                        "system": "http://loinc.org",
-                        "code": fields[0]
-                      }
-                    ]
-                  }
-                },
+                // 'cdex-payload-clinical-note-type': {
+                //   'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
+                //   'extension': [{
+                //     'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
+                //     'valueCodeableConcept': {
+                //       "coding": [
+                //         {
+                //           "system": "http://loinc.org",
+                //           "code": fields[0]
+                //         }
+                //       ]
+                //     }
+                //   }],
+                //   'valueCodeableConcept': {
+                //     "coding": [
+                //       {
+                //         "system": "http://loinc.org",
+                //         "code": fields[0]
+                //       }
+                //     ]
+                //   }
+                // },
                 "contentString": "Please provide " + fields[1] + " recorded during " + startDate.substring(0, 10) + " - " + endDate.substring(0, 10)
               })
             }
@@ -1048,23 +1070,18 @@ class CommunicationRequest extends Component {
         // }
         let queries = this.state.queries;
         for (var i = 0; i < queries.length; i++) {
-          if(provider_req_json.entry[i].resource.resourceType == 'CommunicationRequest'){
-            provider_req_json.entry[i].resource.payload.push({
-              'extension': [{
-                  'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
-                  'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
-                }],
-                'cdex-payload-query-string': {
-                  'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
-                  'extension': [{
+          for(var j=0;j<provider_req_json.entry.length;j++){
+            if(provider_req_json.entry[j].resource.resourceType == 'CommunicationRequest'){
+              provider_req_json.entry[j].resource.payload.push({
+                'extension': [{
                     'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
-                    'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
-
+                    // 'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0],
+                    'valueString': queries[i].resource+'?'+queries[i].searchString
                   }],
-                  'valueString': queries[i].resource+'?'+queries[i].searchString
-                },
-                "contentString": queries[i].query
-            })
+                  
+                  "contentString": queries[i].query
+              })
+            }
           }
         }
       }
