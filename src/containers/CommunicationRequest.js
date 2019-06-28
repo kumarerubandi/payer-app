@@ -304,7 +304,7 @@ class CommunicationRequest extends Component {
   }
 
   async getResources(resource, identifier) {
-    var url = this.props.config.payer.fhir_url + "/" + resource + "?identifier=" + identifier;
+    var url =this.props.config.payer.fhir_url + "/" + resource + "?identifier=" + identifier;
     let token;
     let headers = {
       "Content-Type": "application/json",
@@ -535,11 +535,11 @@ class CommunicationRequest extends Component {
     this.setState({ loading: true });
 
     try {
-      if (claim == true) {
-        json.about = [{
-          "reference": "Claim?identifier=" + this.state.claimid
-        }];
-      }
+      // if (claim == true) {
+      //   json.about = [{
+      //     "reference": "Claim?identifier=" + this.state.claimid
+      //   }];
+      // }
       const fhirClient = new Client({ baseUrl: url });
       let token;
       if (user == 'provider') {
@@ -570,11 +570,11 @@ class CommunicationRequest extends Component {
       }
       console.log('The json is : ', json);
       let data = fhirClient.create({
-        resourceType: resourceName,
+        // resourceType: resourceName,
         body: json,
         headers: { "Content-Type": "application/fhir+json" }
       }).then((data) => {
-        // console.log("Data::", data);
+        console.log("Data::", data);
         this.setState({ dataLoaded: true })
         this.setState({ response: data })
         this.setState({ reqId: data.id })
@@ -681,96 +681,258 @@ class CommunicationRequest extends Component {
       var date = new Date()
       var currentDateTime = date.toISOString()
       let request_id = await this.getRequestID();
+      let endPoint_identifier = await this.getRequestID();
+      let endPointFullUri = await this.getRequestID();
+      let organizationFullUri = await this.getRequestID();
+      let commRequestFullUri = await this.getRequestID();
+      let patientObj={}
+      let patientObject = await this.getResources('Patient',this.state.patientId)
+      let organizationObj
+      console.log('p',patientObject)
+      if('entry' in patientObject){
+        patientObj['given']=patientObject.entry[0].resource.name[0].given
+        patientObj['family']=patientObject.entry[0].resource.name[0].family
+        patientObj['birthDate']=patientObject.entry[0].resource.birthDate
+        patientObj['postalCode']=patientObject.entry[0].resource.address[0].postalCode
+        // if('managingOrganization' in patientObj.entry[0].resource){
+        //   organizationId = patientObj.entry[0].resource.managingOrganization.reference
+        // }
+      }
+      let organizationObject = await this.getResources('Organization',this.props.config.payer.payerIdentifier)
+      if('entry' in organizationObject){
+        organizationObj = organizationObject.entry[0].resource
+      }
+      console.log('patientobj',organizationObj,patientObj)
+
+
       // console.log("this.state.timePeriod-----", this.state.timePeriod);
-      let provider_req_json = {
-        "resourceType": "CommunicationRequest",
-        "identifier": [
+      // let provider_req_json = {
+      //   "resourceType": "CommunicationRequest",
+      //   "identifier": [
+      //     {
+      //       "system": "http://www.jurisdiction.com/insurer/123456",
+      //       "value": request_id
+      //     }
+      //   ],
+      //   "contained": [
+      //     {
+      //       "resourceType": "Endpoint",
+      //       "id": "END123",
+      //       "meta": {
+      //         "versionId": "1",
+      //         "lastUpdated": "2019-04-09T14:11:04.000+00:00"
+      //       },
+      //       "address": "http://54.227.218.17:8180/hapi-fhir-jpaserver/fhir/Communication"
+      //     },
+      //     {
+      //       "resourceType": "Organization",
+      //       "id": this.state.payerId,
+      //       "identifier": [
+      //         {
+      //           "system": "http://www.Anthem.com/edi",
+      //           "value": "DemoPayer"
+      //         },
+      //         {
+      //           "system": "https://www.maxmddirect.com/fhir/identifier",
+      //           "value": "MaxMDDemoPayerOrganization-eval"
+      //         }
+      //       ],
+      //       "name": "MaxMD Demo Payer Solutions",
+      //       "endpoint": [
+      //         {
+      //           "reference": "#END123"
+      //         }
+      //       ]
+      //     }
+      //   ],
+      //   "category": [
+      //     {
+      //       "coding": [
+      //         {
+      //           "system": "http://acme.org/messagetypes",
+      //           "code": "SolicitedAttachmentRequest"
+      //         }
+      //       ]
+      //     }
+      //   ],
+      //   "priority": "routine",
+      //   "medium": [
+      //     {
+      //       "coding": [
+      //         {
+      //           "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationMode",
+      //           "code": "WRITTEN",
+      //           "display": "written"
+      //         }
+      //       ],
+      //       "text": "written"
+      //     }
+      //   ],
+      //   "subject": {
+      //     "reference": "Patient?identifier=" + this.state.patientId
+      //   },
+      //   "requester": {
+      //     // "reference": "Organization?identifier=" + this.state.payerId
+      //     "reference": "#" + this.state.payerId
+      //   },
+      //   // 'about': [{
+      //   //   "reference": "Claim?identifier=" + this.state.claimid
+      //   // }],
+      //   "status": "active",
+      //   "recipient": [
+      //     {
+      //       "reference": "Organization?identifier=" + this.state.practitionerId
+      //     }
+      //   ],
+      //   "sender": {
+      //     "reference": "#" + this.state.payerId
+      //   },
+      //   "occurrencePeriod": {
+      //     "start": this.state.occurenceStartDate,
+      //     "end": this.state.occurenceEndDate
+      //   },
+      //   "authoredOn": currentDateTime
+      // }
+      organizationObj['endpoint']={
+        "reference":"Endpoint/Payer-Endpoint-Id"
+      }
+      organizationObj.id = "Payer-organization-id"
+      console.log(organizationObj,'org')
+      let provider_req_json = 
+        {
+          "resourceType": "Bundle",
+          "id": "bundle-transaction",
+          "meta": {
+            "lastUpdated": "2014-08-18T01:43:30Z"
+          },
+          "type": "transaction",
+          "entry": [
           {
-            "system": "http://www.jurisdiction.com/insurer/123456",
-            "value": request_id
-          }
-        ],
-        "contained": [
-          {
-            "resourceType": "Endpoint",
-            "id": "END123",
-            "meta": {
-              "versionId": "1",
-              "lastUpdated": "2019-04-09T14:11:04.000+00:00"
+            "fullUrl": "urn:uuid:"+endPointFullUri,
+            "resource": {
+              "resourceType": "Endpoint",
+              "id":"Payer-Endpoint-Id",
+              "identifier":[
+                {
+                  "system": "http://www.jurisdiction.com/insurer/123456",
+                  "value": endPoint_identifier
+                }
+              ],
+              "address": "http://54.227.218.17:8180/hapi-fhir-jpaserver/fhir/Communication"
             },
-            "address": "http://54.227.218.17:8180/hapi-fhir-jpaserver/fhir/Communication"
+            "request": {
+              "method": "POST",
+              "url": "Endpoint",
+              "ifNoneExist": {
+                "_value": "identifier=http://www.jurisdiction.com/insurer/123456&indentifier"+endPoint_identifier
+             }
+            }
           },
           {
-            "resourceType": "Organization",
-            "id": this.state.payerId,
+            "fullUrl": "urn:uuid:"+organizationFullUri,
+            "resource": organizationObj,
+            "request": {
+              "method": "POST",
+              "url": "Organization",
+              "ifNoneExist": {
+                "_value": "identifier="+organizationObj.identifier[0].system+"&identifier="+organizationObj.identifier[0].value
+             }
+            }
+          },
+          {
+            "fullUrl": "urn:uuid:"+commRequestFullUri,
+            "resource": {
+            "resourceType": "CommunicationRequest",
             "identifier": [
               {
-                "system": "http://www.Anthem.com/edi",
-                "value": "DemoPayer"
-              },
-              {
-                "system": "https://www.maxmddirect.com/fhir/identifier",
-                "value": "MaxMDDemoPayerOrganization-eval"
+                "system": "http://www.jurisdiction.com/insurer/123456",
+                "value": request_id
               }
             ],
-            "name": "MaxMD Demo Payer Solutions",
-            "endpoint": [
+            "contained": [
               {
-                "reference": "#END123"
-              }
-            ]
-          }
-        ],
-        "category": [
-          {
-            "coding": [
-              {
-                "system": "http://acme.org/messagetypes",
-                "code": "SolicitedAttachmentRequest"
-              }
-            ]
-          }
-        ],
-        "priority": "routine",
-        "medium": [
-          {
-            "coding": [
-              {
-                "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationMode",
-                "code": "WRITTEN",
-                "display": "written"
+                "resourceType": "Organization",
+                "id": "Provider-organization-id",
+                "identifier": [
+                  {
+                    "system": "http://www.Anthem.com/edi",
+                    "value": "DemoPayer"
+                  },
+                  {
+                    "system": "https://www.maxmddirect.com/fhir/identifier",
+                    "value": "MaxMDDemoPayerOrganization-eval"
+                  }
+                ],
+                "name": "MaxMD Demo Payer Solutions",
+                "endpoint": [
+                  {
+                    "reference": "#END123"
+                  }
+                ]
               }
             ],
-            "text": "written"
+            "category": [
+              {
+                "coding": [
+                  {
+                    "system": "http://acme.org/messagetypes",
+                    "code": "SolicitedAttachmentRequest"
+                  }
+                ]
+              }
+            ],
+            "priority": "routine",
+            "medium": [
+              {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationMode",
+                    "code": "WRITTEN",
+                    "display": "written"
+                  }
+                ],
+                "text": "written"
+              }
+            ],
+            "subject": {
+              "reference": "Patient?given="+patientObj.given+"&family="+patientObj.family+"&address-postalcode="+patientObj.postalCode+"&birthdate="+patientObj.birthDate
+            },
+            "requester": {
+              // "reference": "Organization?identifier=" + this.state.payerId
+              "reference": "Organization/"+organizationObj.id
+            },
+            // 'about': [{
+            //   "reference": "Claim?identifier=" + this.state.claimid
+            // }],
+            "status": "active",
+            "recipient": [
+              {
+                "reference": "Organization/"+organizationObj.id
+              }
+            ],
+            "sender": {
+              // "reference": "Organization?identifier=" + this.state.practitionerId
+              "reference": "#Provider-organization-id"
+            },
+            "occurrencePeriod": {
+              "start": this.state.occurenceStartDate,
+              "end": this.state.occurenceEndDate
+            },
+            "authoredOn": currentDateTime
+          },
+          "request": {
+            "method": "POST",
+            "url": "CommunicationRequest"
           }
-        ],
-        "subject": {
-          "reference": "Patient?identifier=" + this.state.patientId
-        },
-        "requester": {
-          // "reference": "Organization?identifier=" + this.state.payerId
-          "reference": "#" + this.state.payerId
-        },
-        // 'about': [{
-        //   "reference": "Claim?identifier=" + this.state.claimid
-        // }],
-        "status": "active",
-        "recipient": [
-          {
-            "reference": "Organization?identifier=" + this.state.practitionerId
-          }
-        ],
-        "sender": {
-          "reference": "#" + this.state.payerId
-        },
-        "occurrencePeriod": {
-          "start": this.state.occurenceStartDate,
-          "end": this.state.occurenceEndDate
-        },
-        "authoredOn": currentDateTime
+        }
+        ]
+    }
+      for(var i=0;i<provider_req_json.entry.length;i++){
+        if(provider_req_json.entry[i].resource.resourceType == 'CommunicationRequest'){
+          provider_req_json.entry[i].resource.payload= [];
+        }
       }
-
-      provider_req_json.payload = [];
+      // provider_req_json.payload = [];
       // console.log("this.state.docType", this.state.docType);
       if (this.state.isDocument) {
         let documents = this.state.documents;
@@ -785,42 +947,47 @@ class CommunicationRequest extends Component {
         // console.log(timePeriod,'uoo')
         for (var i = 0; i < documents.length; i++) {
           var fields = documents[i].split('|')
-          provider_req_json.payload.push({
-            'extension': [{
-              'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
-              'valueCodeableConcept': {
-                "coding": [
-                  {
-                    "system": "http://loinc.org",
-                    "code": fields[0]
+          for(var i=0;i<provider_req_json.entry.length;i++){
+            if(provider_req_json.entry[i].resource.resourceType == 'CommunicationRequest'){
+              provider_req_json.entry[i].resource.payload.push({
+                'extension': [{
+                  'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
+                  'valueCodeableConcept': {
+                    "coding": [
+                      {
+                        "system": "http://loinc.org",
+                        "code": fields[0]
+                      }
+                    ]
                   }
-                ]
-              }
-            }],
-            'cdex-payload-clinical-note-type': {
-              'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
-              'extension': [{
-                'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
-                'valueCodeableConcept': {
-                  "coding": [
-                    {
-                      "system": "http://loinc.org",
-                      "code": fields[0]
+                }],
+                'cdex-payload-clinical-note-type': {
+                  'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
+                  'extension': [{
+                    'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type',
+                    'valueCodeableConcept': {
+                      "coding": [
+                        {
+                          "system": "http://loinc.org",
+                          "code": fields[0]
+                        }
+                      ]
                     }
-                  ]
-                }
-              }],
-              'valueCodeableConcept': {
-                "coding": [
-                  {
-                    "system": "http://loinc.org",
-                    "code": fields[0]
+                  }],
+                  'valueCodeableConcept': {
+                    "coding": [
+                      {
+                        "system": "http://loinc.org",
+                        "code": fields[0]
+                      }
+                    ]
                   }
-                ]
-              }
-            },
-            "contentString": "Please provide " + fields[1] + " recorded during " + startDate.substring(0, 10) + " - " + endDate.substring(0, 10)
-          })
+                },
+                "contentString": "Please provide " + fields[1] + " recorded during " + startDate.substring(0, 10) + " - " + endDate.substring(0, 10)
+              })
+            }
+          }
+          
         }
       }
       else {
@@ -832,22 +999,26 @@ class CommunicationRequest extends Component {
         for (var i = 0; i < vitalSigns.length; i++) {
           // console.log('in this looop')
           var fields = vitalSigns[i].split("|")
-          provider_req_json.payload.push({
-            'extension': [{
-              'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
-              'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
-            }],
-            'cdex-payload-query-string': {
-              'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
-              'extension': [{
-                'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
-                'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
+          for(var i=0;i<provider_req_json.entry.length;i++){
+            if(provider_req_json.entry[i].resource.resourceType == 'CommunicationRequest'){
+              provider_req_json.entry[i].resource.payload.push({
+                'extension': [{
+                  'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
+                  'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
+                }],
+                'cdex-payload-query-string': {
+                  'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
+                  'extension': [{
+                    'url': 'http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string',
+                    'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
 
-              }],
-              'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
-            },
-            "contentString": "Please provide " + fields[1] + " recorded during " + startDate.substring(0, 10) + " - " + endDate.substring(0, 10)
-          })
+                  }],
+                  'valueString': "Observation?patient.identifier=" + this.state.patientId + "&date=gt" + startDate + "&date=lt" + endDate + "&code=" + fields[0]
+                },
+                "contentString": "Please provide " + fields[1] + " recorded during " + startDate.substring(0, 10) + " - " + endDate.substring(0, 10)
+              })
+            }
+          }
         }
       }
       // let documents = this.state.documents
@@ -861,9 +1032,14 @@ class CommunicationRequest extends Component {
       // console.log(JSON.stringify(req_json))
       // console.log("provider----------------", provider_req_json);
       let commRequest = await this.createFhirResource(
-        provider_req_json, 'CommunicationRequest', this.props.config.provider.fhir_url, 'provider'
+        provider_req_json, 'Bundle', this.props.config.provider.fhir_url, 'provider'
       );
-      provider_req_json.identifier.value = commRequest.identifier.value;
+      // for(var i=0;i<provider_req_json.entry.length;i++){
+      //   if(provider_req_json.entry[i].resource.resourceType == 'CommunicationRequest'){
+      //     provider_req_json.entry[i].resource.identifier.value = commRequest.identifier.value;
+      //   }
+      // }
+
       // let commRequest = await this.createFhirResource(
       //   provider_req_json, 'CommunicationRequest', this.props.config.provider.fhir_url, 'provider'
       // ).then(async () => {
@@ -875,8 +1051,8 @@ class CommunicationRequest extends Component {
       // console.log("payer----------------", provider_req_json);
       let communication = await this.createFhirResource(provider_req_json, 'CommunicationRequest', this.props.config.payer.fhir_url, 'payer', true)
 
-      // console.log(commRequest, 'yess')
-      // console.log(communication, 'yess plese')
+      console.log(commRequest, 'yess')
+      console.log(communication, 'yess plese')
     sessionStorage.setItem('patientId', this.state.patientId)
     sessionStorage.setItem('practitionerId', this.state.practitionerId)
     sessionStorage.setItem('payerId', this.state.payerId)
