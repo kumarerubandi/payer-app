@@ -12,13 +12,13 @@
         }
       ],
       "crd":{
-        "crd_url":"http://54.227.218.17:8090/",
+        "crd_url":"http://auth.mettles.com:8090/",
         "coverage_decision_path": "cds-services/coverage_decision",
         "coverage_requirement_path": "cds-services/coverage_requirement",
         "patient_view_path":"cds-services/patient_view"
       },
       "payer":{
-        "fhir_url": "http://54.227.218.17:8180/hapi-fhir-jpaserver/fhir",
+        "fhir_url": "http://auth.mettles.com:8180/hapi-fhir-jpaserver/fhir",
         "client_secret": "48bf2c3e-2bd6-4f8d-a5ce-2f94adcb7492",
         "client_id": "app-login",
         "grant_type":"password",
@@ -27,7 +27,7 @@
 
       },
       "provider":{
-        "fhir_url": "http://54.227.218.17:8080/hapi-fhir-jpaserver/fhir",
+        "fhir_url": "http://auth.mettles.com:8080/hapi-fhir-jpaserver/fhir",
         "client_secret": "48bf2c3e-2bd6-4f8d-a5ce-2f94adcb7492",
         "client_id": "app-login",
         "grant_type":"password",
@@ -36,8 +36,8 @@
         "password":"john123"
       },
       "authorization_service":{
-        "auth_token_url": "https://54.227.218.17:8443/auth/realms/ProviderCredentials/protocol/openid-connect/token",
-        "token_verification_url": "https://54.227.218.17:8443/auth/realms/ProviderCredentials/protocol/openid-connect/token/introspect",
+        "auth_token_url": "https://auth.mettles.com:8443/auth/realms/ProviderCredentials/protocol/openid-connect/token",
+        "token_verification_url": "https://auth.mettles.com:8443/auth/realms/ProviderCredentials/protocol/openid-connect/token/introspect",
         "token_type": "Bearer",
         "token_expires_in": 300,
         "scope": "patient/Patient.read patient/Observation.read",

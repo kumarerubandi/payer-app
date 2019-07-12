@@ -753,7 +753,7 @@ class CommunicationRequest extends Component {
       //         "versionId": "1",
       //         "lastUpdated": "2019-04-09T14:11:04.000+00:00"
       //       },
-      //       "address": "http://54.227.218.17:8180/hapi-fhir-jpaserver/fhir/Communication"
+      //       "address": "http://auth.mettles.com:8180/hapi-fhir-jpaserver/fhir/Communication"
       //     },
       //     {
       //       "resourceType": "Organization",
@@ -849,7 +849,7 @@ class CommunicationRequest extends Component {
                 "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
                 "code": "hl7-fhir-rest"
               },
-              "address": "http://54.227.218.17:8180/hapi-fhir-jpaserver/fhir/Communication"
+              "address": "http://auth.mettles.com:8180/hapi-fhir-jpaserver/fhir/Communication"
             },
             "request": {
               "method": "POST",
