@@ -114,7 +114,9 @@ class CommunicationRequest extends Component {
       { 'step_no': 5, 'step_str': 'Retrieving Smart App', 'step_status': 'step_not_started' }],
       errors: {},
       loadingSteps: false,
-      dataLoaded: false
+      dataLoaded: false,
+      isClinicalNote:true,
+      isDataElement:false
     }
 
 
@@ -219,12 +221,24 @@ class CommunicationRequest extends Component {
   }
 
   updateDoc(e) {
-    this.setState({ isDocument: true });
+    console.log("event", e)
+    if(this.state.isClinicalNote){
+      this.setState({ "isClinicalNote": false });
+    }
+    else{
+      this.setState({ "isClinicalNote": true });
+    }
     this.setState({ vitalSigns: [] })
+    console.log(this.state.isClinicalNote)
   }
 
   updateDataElement(e) {
-    this.setState({ isDocument: false });
+     if(this.state.isDataElement){
+      this.setState({ "isDataElement": false });
+    }
+    else{
+      this.setState({ "isDataElement": true });
+    }
     this.setState({ documents: [] })
   }
 
@@ -982,7 +996,7 @@ class CommunicationRequest extends Component {
       }
       // provider_req_json.payload = [];
       // console.log("this.state.docType", this.state.docType);
-      if (this.state.isDocument) {
+      if (this.state.isClinicalNote) {
         let documents = this.state.documents;
         let ext = [];
         // let timePeriod = this.state.payloadtimePeriod
@@ -1038,7 +1052,7 @@ class CommunicationRequest extends Component {
           
         }
       }
-      else {
+      if(this.state.isDataElement) {
         // let vitalSigns = this.state.vitalSigns
         // // console.log('inside else', vitalSigns)
         let endDate = this.state.payloadEndDate
@@ -1223,11 +1237,12 @@ renderForm() {
             </div>
             <div>
               <div><span className="header">Select Payload type</span>
-                <input type="radio" checked={this.state.isDocument === true} onChange={this.updateDoc} /> Clinical Note
-                <input type="radio" checked={this.state.isDocument === false} onChange={this.updateDataElement} />Data Elements
+                <input type="checkbox" checked={this.state.isClinicalNote} onChange={this.updateDoc} /> Clinical Note
+                <input type="checkbox" checked={this.state.isDataElement}  onChange={this.updateDataElement} />Data Elements
                 </div>
+                
             </div>
-            {this.state.isDocument &&
+            {this.state.isClinicalNote &&
               <div>
                 <div className="header">
                   Clinical Note
@@ -1238,7 +1253,7 @@ renderForm() {
                 </div>
 
               </div>}
-            {this.state.isDocument === false &&
+            {this.state.isDataElement &&
               <div>
                 <div className="header">
                   Requesting for
@@ -1309,12 +1324,12 @@ renderForm() {
                 </div>
 
               </div>
-              {this.state.isDocument &&
+              {this.state.isClinicalNote &&
                 <div className="header">
                   Clinical Note Time period
                   </div>
               }
-              {this.state.isDocument == false &&
+              {this.state.isDataElement == false &&
                 <div className="header">
                   Observation Time period
                 </div>
